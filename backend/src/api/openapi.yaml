@@ -1,0 +1,162 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Poker-API
+  description: Progrendszerek projekt backend apija (Poker oldal no money)
+tags:
+  - name: Users
+    description: user specific actions like creating, logging in logging out
+  - name: Auth
+    description: authentication related actions
+paths:
+  /register:
+    post:
+      summary: Register a new user
+      operationId: register
+      x-eov-operation-handler: api/controllers/auth.controller
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+      responses:
+        '200':
+          description: User successfully registered
+        '400':
+          description: Invalid request
+  /login:
+    post:
+      summary: Log in as an existing user
+      operationId: login
+      x-eov-operation-handler: api/controllers/auth.controller
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '200':
+          description: User successfully logged in
+          headers:
+            Set-Cookie:
+              description: Session cookie
+              schema:
+                type: string
+                example: connect.sid=abcde12345; Path=/; HttpOnly
+        '401':
+          description: Unauthorized, invalid credentials
+  /logout:
+    post:
+      summary: Log out the currently authenticated user
+      operationId: logout
+      x-eov-operation-handler: api/controllers/auth.controller
+      tags:
+        - Auth
+      responses:
+        '200':
+          description: User successfully logged out
+        '401':
+          description: Unauthorized, user not logged in
+      security:
+       - cookieAuth: []
+  /users:
+    get:
+      summary: Get user information
+      operationId: getUser
+      x-eov-operation-handler: api/controllers/user.controller
+      tags:
+        - Users
+      responses:
+        '200':
+          description: User information retrieved successfully
+          # any response body
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+                  password:
+                    type: string
+        '401':
+          description: Unauthorized, user not logged in
+      security:
+        - cookieAuth: []
+    put:
+      summary: Update user information
+      operationId: updateUser
+      x-eov-operation-handler: api/controllers/user.controller
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: User information updated successfully
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized, user not logged in
+      security:
+        - cookieAuth: []
+    delete:
+      summary: Delete user
+      operationId: deleteUser
+      x-eov-operation-handler: api/controllers/user.controller
+      tags:
+        - Users
+      responses:
+        '200':
+          description: User deleted successfully
+        '401':
+          description: Unauthorized, user not logged in
+      security:
+        - cookieAuth: []
+components:
+  schemas:
+    UserRegistration:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+    UserLogin:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+    UserUpdate:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid

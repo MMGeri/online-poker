@@ -1,0 +1,10 @@
+{
+    "watch": [
+        "src/"
+    ],
+    "ext": "ts, yaml",
+    "events": {
+        "restart": "cpx src/**/*.yaml dist/",
+        "start": "cpx src/**/*.yaml dist/"
+    }
+}
