@@ -1,0 +1,8 @@
+<div>
+    <ul>
+        @for (m of messages; track m )
+        { <li>{{ m }}</li> }
+    </ul>
+    <input [(ngModel)]="message" (keydown.enter)="sendMessage()" type="text">
+    <button (click)="sendMessage()">Send</button>
+</div>

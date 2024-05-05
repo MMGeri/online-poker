@@ -27,6 +27,12 @@ paths:
           description: User successfully registered
         '400':
           description: Invalid request
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
   /login:
     post:
       summary: Log in as an existing user
@@ -59,6 +65,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
   /logout:
     post:
       summary: Log out the currently authenticated user
@@ -71,6 +83,16 @@ paths:
           description: User successfully logged out
         '401':
           description: Unauthorized, user not logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
       security:
        - cookieAuth: []
   /users:
@@ -86,6 +108,12 @@ paths:
           # TODO: content
         '401':
           description: Unauthorized, user not logged in
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
       security:
         - cookieAuth: []
     put:
@@ -107,6 +135,12 @@ paths:
           description: Invalid request
         '401':
           description: Unauthorized, user not logged in
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
       security:
         - cookieAuth: []
     delete:
@@ -120,6 +154,12 @@ paths:
           description: User deleted successfully
         '401':
           description: Unauthorized, user not logged in
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
       security:
         - cookieAuth: []
 components:

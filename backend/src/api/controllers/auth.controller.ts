@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import { Response, Request, NextFunction } from 'express';
-import passport, { use } from 'passport';
+import passport from 'passport';
 import { User } from '../../models/user';
 import { BaseError } from '../middleware/error-handler';
 import { dbService } from '../../shared/services/db.service';
@@ -26,15 +26,28 @@ async function register(req: Request, res: Response, next: NextFunction) {
     const users = await dbService.getUsersByQuery({ username: user.username });
     if (users.length > 0) {
         res.status(400).send('Username is already taken');
-        return;
     }
     const hashedPassword = createHash('sha256').update(req.body.password).digest('hex');
-    await dbService.createUser({ username: user.username, hashedPassword });
+    try {
+        await dbService.createUser({ username: user.username, hashedPassword });
+    } catch (error: any) {
+        next(new BaseError('RegisterError', 500, error.message, 'backend register controller'));
+    }
     res.status(200).send();
+}
+
+async function logout(req: Request, res: Response) {
+    req.logout((error) => {
+        if (error) {
+            console.log(error);
+            res.status(500).send('Internal server error.');
+        }
+        res.status(200).send('Successfully logged out.');
+    });
 }
 
 module.exports = {
     login,
-    logout: (req: Request, res: Response) => { },
+    logout,
     register
 };

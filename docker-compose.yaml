@@ -27,6 +27,15 @@ services:
       - ./db:/data/db
     networks:
       - app-network
+  
+  redis:
+    build: ./redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis:/data/redis
+    networks:
+      - app-network
 
 networks:
   app-network:
