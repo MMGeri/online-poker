@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import { BaseError, ErrorHandler } from './api/middleware/error-handler';
 import { config } from './config';
 import { configurePassport } from './shared/utils/passport';
+import { connect } from './connection';
 
 const app = express();
 const errorHandler = new ErrorHandler();
@@ -41,6 +42,9 @@ app.use(OpenApiValidator.middleware({
         }
     }
 }));
+
+// Connect to MongoDB
+connect();
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     errorHandler.handleError(err, req, res, next);

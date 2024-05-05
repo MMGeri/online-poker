@@ -30,6 +30,7 @@
     "dependencies": {
         "cookie-parser": "^1.4.6",
         "dotenv": "^16.4.5",
+        "env-var": "^7.4.1",
         "express": "^4.19.2",
         "express-openapi-validator": "^5.1.6",
         "express-session": "^1.18.0",

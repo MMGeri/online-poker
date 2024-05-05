@@ -1,27 +1,40 @@
-import { Response, Request } from 'express';
-import passport from 'passport';
+import { createHash } from 'crypto';
+import { Response, Request, NextFunction } from 'express';
+import passport, { use } from 'passport';
 import { User } from '../../models/user';
 import { BaseError } from '../middleware/error-handler';
+import { dbService } from '../../shared/services/db.service';
 
 async function login(req: Request, res: Response) {
-    passport.authenticate('local', (error: string | null, user: User) => {
+    passport.authenticate('local', (error: any, user: User) => {
         if (error) {
-            res.status(500).send(error);
-        } else {
-            req.login(user, (err: string | null) => {
-                if (err) {
-                    console.log(err);
-                    throw new BaseError('LoginError', 500, err, 'backend login controller');
-                } else {
-                    res.status(200).send();
-                }
-            });
+            res.status(error.status ?? 500).send({ message: error.message, ...error });
+            return;
         }
+        req.login(user, (err: string | null) => {
+            if (err) {
+                throw new BaseError('LoginError', 500, err, 'backend login controller');
+            }
+            user._id = user._id.toString();
+            res.status(200).json(user);
+        });
     })(req, res);
+}
+
+async function register(req: Request, res: Response, next: NextFunction) {
+    const user = req.body;
+    const users = await dbService.getUsersByQuery({ username: user.username });
+    if (users.length > 0) {
+        res.status(400).send('Username is already taken');
+        return;
+    }
+    const hashedPassword = createHash('sha256').update(req.body.password).digest('hex');
+    await dbService.createUser({ username: user.username, hashedPassword });
+    res.status(200).send();
 }
 
 module.exports = {
     login,
     logout: (req: Request, res: Response) => { },
-    register: (req: Request, res: Response) => { }
+    register
 };

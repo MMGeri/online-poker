@@ -1,7 +1,9 @@
+import { createHash } from 'crypto';
 import { PassportStatic } from 'passport';
 import { Strategy } from 'passport-local';
 import { User } from '../../models/user';
 import { BaseError } from '../../api/middleware/error-handler';
+import { dbService } from '../services/db.service';
 
 export const configurePassport = (passport: PassportStatic): PassportStatic => {
 
@@ -10,20 +12,24 @@ export const configurePassport = (passport: PassportStatic): PassportStatic => {
         done(null, user);
     });
 
-    passport.deserializeUser((user: Express.User, done) => {
+    passport.deserializeUser((user: User, done) => {
         console.log('user is deserialized.');
-        // Here you would typically fetch the user from your database
-        // For simplicity, we'll just return a mock user TODO: Implement fetching user from database
         done(null, user);
     });
 
-    passport.use('local', new Strategy((username: string, password: string, done: Function) => {
-        if (username === 'test@test.com' && password === 'testpw') {
-            done(null, new User(username, password));
+    passport.use('local', new Strategy(async (username: string, password: string, done: Function) => {
+        const userFromDb: User[] = await dbService.getUsersByQuery({ username });
+        if (checkPassword(password, userFromDb[0].hashedPassword)) {
+            done(null, userFromDb[0]);
         } else {
-            throw new BaseError('Unauthorized', 401, 'Invalid username or password', 'backend passport');
+            done(new BaseError('Unauthorized', 401, 'Invalid username or password', 'backend passport'));
         }
     }));
 
     return passport;
 };
+
+function checkPassword(password: string, hashedPassword: string): boolean {
+    const incomingPasswordHashed = createHash('sha256').update(password).digest('hex');
+    return incomingPasswordHashed === hashedPassword;
+}

@@ -49,8 +49,16 @@ paths:
               schema:
                 type: string
                 example: connect.sid=abcde12345; Path=/; HttpOnly
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
         '401':
           description: Unauthorized, invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
   /logout:
     post:
       summary: Log out the currently authenticated user
@@ -75,16 +83,7 @@ paths:
       responses:
         '200':
           description: User information retrieved successfully
-          # any response body
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  username:
-                    type: string
-                  password:
-                    type: string
+          # TODO: content
         '401':
           description: Unauthorized, user not logged in
       security:
@@ -100,7 +99,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserUpdate'
+              $ref: '#/components/schemas/UserChangeRequest'
       responses:
         '200':
           description: User information updated successfully
@@ -145,16 +144,57 @@ components:
       required:
         - username
         - password
-    UserUpdate:
+    LoginResponse:
       type: object
       properties:
+        _id:
+          type: string
         username:
           type: string
-        password:
+        roles:
+          type: array
+          items:
+            type: string
+        balance:
+          type: number
+        createdAt:
           type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      additionalProperties: false
       required:
-        - username
-        - password
+        - _id
+    UserChangeRequest:
+      type: object
+      properties:
+        _id:
+          type: string
+        username:
+          type: string
+        hashedPassword:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        balance:
+          type: number
+      additionalProperties: false
+      required:
+        - _id
+    BaseError:
+      type: object
+      properties:
+        name:
+          type: string
+        message:
+          type: string
+        status:
+          type: number
+        originatedFrom:
+          type: string
   securitySchemes:
     cookieAuth:
       type: apiKey
