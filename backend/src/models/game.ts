@@ -19,6 +19,8 @@ interface IPlayer {
     leftGame: boolean;
 }
 
+export type Phase = 'Blinds' | 'Pre-flop' | 'Flop' | 'Turn' | 'River';
+
 interface IGame extends Document {
     _id: string;
     ownerId: string;
@@ -28,7 +30,7 @@ interface IGame extends Document {
     cardsInDeck: ICard[];
     round: number;
     paused: boolean;
-    phase: string;
+    phase: Phase;
     options: {
         key?: string;
         whiteList: string[];

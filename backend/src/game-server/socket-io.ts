@@ -5,12 +5,18 @@ import { io, passportSession, expressSessionMiddleware } from '../app';
 import { IUser } from '../models/user';
 import { IMessage } from '../models/message';
 import { dbService } from '../shared/services/db.service';
+import { GameEvent, InputEventNameEnum, InputEvent } from './game-events.model';
+
+// chat does not need to be managed
+interface GameEvenManagers {
+    [key: string]: GameEventManager; // key is gameId
+}
+
 
 const rateLimiter = new RateLimiterMemory({
     points: 10,
     duration: 10
 });
-
 
 io.engine.use(onlyForHandshake(expressSessionMiddleware));
 io.engine.use(onlyForHandshake(passportSession));
@@ -30,6 +36,7 @@ io.on('connection', (socket: Socket) => {
     socket.on('join-game-channel', async (obj: { key: string; gameId: string }) => {
         if (await canJoinGameChannel(obj.key, obj.gameId)) {
             socket.join(`game:${obj.gameId}`);
+            socket.join(`game:${obj.gameId}:${user._id}`); // private room
         }
     });
     socket.on('new-message', (obj: { message: string; channelId: string }) => {
@@ -44,18 +51,37 @@ io.on('connection', (socket: Socket) => {
         };
         socket.to(`chat:${obj.channelId}`).emit('new-message', messageObj);
     });
-    socket.on('game-event', (obj: { event: string; gameId: string }) => {
+    socket.on('game-event', (obj: { event: InputEvent; gameId: string }) => {
         if (!userIsPartOfChannel(sid, `game:${obj.gameId}`)) {
             return;
         }
-        // save state to db TODO: implement
-        socket.to(`game:${obj.gameId}`).emit('game-event', obj.event);
+        if (!isInputEvent(obj.event)) {
+            return;
+        }
+        if (!userOwnsSocket(user._id, obj.event.userId)) {
+            return;
+        }
+        // user specific or entire lobby gameState.userId; or not
+        const gameState = {};
+        // TODO: get new game state from gameEventManager
+        // game state should not contain player cards
+        // only calculate form Input events, server side events should return null and continue
+        socket.to(`game:${obj.gameId}`).emit('game-event', gameState);
     });
     socket.on('disconnect', () => {
         console.log('user disconnected');
+        // TODO: send user left to game:id or chat:id room event
         // TODO: send pause event? or throw in event.
     });
 });
+
+function isInputEvent(event: InputEvent): event is InputEvent {
+    return (event as InputEvent).name in InputEventNameEnum;
+}
+
+function userOwnsSocket(userId: string, socketUserId: string): boolean {
+    return userId === socketUserId;
+}
 
 function applyRateLimiting(socket: Socket, user: IUser) {
     return (packet, next) => {
