@@ -5,12 +5,8 @@ import { io, passportSession, expressSessionMiddleware } from '../app';
 import { IUser } from '../models/user';
 import { IMessage } from '../models/message';
 import { dbService } from '../shared/services/db.service';
-import { GameEvent, InputEventNameEnum, InputEvent } from './game-events.model';
-
-// chat does not need to be managed
-interface GameEvenManagers {
-    [key: string]: GameEventManager; // key is gameId
-}
+import { HybridEventNameEnum, HybridEvent } from './game-events.model';
+import { gems } from './game-event.manager';
 
 
 const rateLimiter = new RateLimiterMemory({
@@ -51,32 +47,36 @@ io.on('connection', (socket: Socket) => {
         };
         socket.to(`chat:${obj.channelId}`).emit('new-message', messageObj);
     });
-    socket.on('game-event', (obj: { event: InputEvent; gameId: string }) => {
+    socket.on('game-event', async (obj: { inputEvent: HybridEvent; gameId: string }) => {
+        obj.inputEvent.userId = user._id;
         if (!userIsPartOfChannel(sid, `game:${obj.gameId}`)) {
             return;
         }
-        if (!isInputEvent(obj.event)) {
+        if (!isInputEvent(obj.inputEvent)) {
             return;
         }
-        if (!userOwnsSocket(user._id, obj.event.userId)) {
+        if (!userOwnsSocket(user._id, obj.inputEvent.userId)) {
             return;
         }
-        // user specific or entire lobby gameState.userId; or not
-        const gameState = {};
-        // TODO: get new game state from gameEventManager
-        // game state should not contain player cards
-        // only calculate form Input events, server side events should return null and continue
-        socket.to(`game:${obj.gameId}`).emit('game-event', gameState);
+        const gameEventManager = gems.getGameEventManager(obj.gameId);
+        if (!gameEventManager) {
+            return;
+        }
+        const { event, gameState } = await gameEventManager.getNewGameState(obj.inputEvent);
+        if (event) {
+            socket.to(`game:${obj.gameId}`).emit('game-event', { event, gameState });
+        }
     });
     socket.on('disconnect', () => {
         console.log('user disconnected');
         // TODO: send user left to game:id or chat:id room event
         // TODO: send pause event? or throw in event.
+        // TODO: tell game manager?
     });
 });
 
-function isInputEvent(event: InputEvent): event is InputEvent {
-    return (event as InputEvent).name in InputEventNameEnum;
+function isInputEvent(event: HybridEvent): event is HybridEvent {
+    return (event as HybridEvent).name in HybridEventNameEnum;
 }
 
 function userOwnsSocket(userId: string, socketUserId: string): boolean {
@@ -129,6 +129,6 @@ async function canJoinChatChannel(key: string, channelId: string): Promise<boole
 }
 
 async function canJoinGameChannel(key: string, gameId: string): Promise<boolean> {
-    const game = await dbService.getGamesByQuery({ _id: gameId });
+    const game = await dbService.getGamesByQuery({ _id: gameId }); // TODO: whitelist and banlist
     return key === game[0]?.options.key;
 }

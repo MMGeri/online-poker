@@ -25,12 +25,17 @@ interface IGame extends Document {
     _id: string;
     ownerId: string;
     chatChannelId: string;
-    players: IPlayer[];
+    currentBet: number;
+    players: {
+        [key: string]: IPlayer; // key is player.userId
+    };
     cardsOnTable: ICard[];
     cardsInDeck: ICard[];
     round: number;
     paused: boolean;
     phase: Phase;
+    gameStarted: boolean;
+    gameOver: boolean;
     options: {
         key?: string;
         whiteList: string[];
@@ -49,23 +54,27 @@ const gameSchema = new Schema({
         ref: 'Channel',
         required: true
     },
-    players: [{
-        userId: {
-            type: Schema.Types.ObjectId,
-            ref: 'User'
-        },
-        cards: [{
-            value: String,
-            sign: String
-        }],
-        inGameBalance: Number,
-        bet: Number,
-        called: Boolean,
-        raisedTimes: Number,
-        positionAtTable: Number,
-        stillPlayingInRound: Boolean,
-        leftGame: Boolean
-    }],
+    currentBet: Number,
+    players: {
+        type: Map,
+        of: {
+            userId: {
+                type: Schema.Types.ObjectId,
+                ref: 'User'
+            },
+            cards: [{
+                value: String,
+                sign: String
+            }],
+            inGameBalance: Number,
+            bet: Number,
+            called: Boolean,
+            raisedTimes: Number,
+            positionAtTable: Number,
+            stillPlayingInRound: Boolean,
+            leftGame: Boolean
+        }
+    },
     cardsOnTable: [{
         value: String,
         sign: String
@@ -81,6 +90,8 @@ const gameSchema = new Schema({
         enum: ['Blinds', 'Pre-flop', 'Flop', 'Turn', 'River'],
         default: 'Blinds'
     },
+    gameStarted: Boolean,
+    gameOver: Boolean,
     options: {
         key: String,
         whiteList: [{

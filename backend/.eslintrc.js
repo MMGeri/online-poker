@@ -41,7 +41,6 @@ module.exports = {
         "id-denylist": "off",
         "id-match": "off",
         "import/no-deprecated": "warn",
-        "indent": ["error", 4],
         "max-len": [
             "warn",
             {
@@ -164,7 +163,6 @@ module.exports = {
                         "accessibility": "explicit"
                     }
                 ],
-                "@typescript-eslint/indent": ["error", 4],
                 "@typescript-eslint/member-delimiter-style": [
                     "error",
                     {

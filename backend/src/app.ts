@@ -12,6 +12,7 @@ import { BaseError, ErrorHandler } from './api/middleware/error-handler';
 import { config } from './config';
 import { connect } from './connection';
 import { configurePassport } from './shared/utils/passport';
+import { IUser } from './models/user';
 
 const port = config.port;
 const apiDefPath = path.join(__dirname, 'api/openapi.yaml');
@@ -92,7 +93,6 @@ server.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
 import './game-server/socket-io';
-import { IUser } from './models/user';
 
 export default app;
 export { io, passportSession, expressSessionMiddleware };

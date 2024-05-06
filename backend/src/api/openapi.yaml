@@ -117,6 +117,13 @@ paths:
             type: string
           required: false
           description: The id of the user to retrieve
+        - in: query
+          name: username
+          schema:
+            type: string
+          required: false
+          description: The username of the user to retrieve
+          # TODO: paginate?
       responses:
         '200':
           description: User information retrieved successfully
@@ -809,3 +816,5 @@ components:
       type: apiKey
       in: cookie
       name: connect.sid
+
+# TODO: join game w magic link on to frontend
