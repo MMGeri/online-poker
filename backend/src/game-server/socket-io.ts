@@ -62,8 +62,8 @@ io.on('connection', (socket: Socket) => {
         if (!gameEventManager) {
             return;
         }
-        const { event, gameState } = await gameEventManager.getNewGameState(obj.inputEvent);
-        if (event) {
+        const { events, gameState } = await gameEventManager.getNewGameState(obj.inputEvent);
+        for (const event of events) {
             socket.to(`game:${obj.gameId}`).emit('game-event', { event, gameState });
         }
     });

@@ -10,20 +10,19 @@ enum HybridEventNameEnum { // rather hybrid, in and out
     START_GAME = 'START_GAME'
 }
 
+enum PrivateEventNameEnum {
+    CARDS_DEALT = 'CARDS_DEALT', // data: { cards: Card[] } - o (send to private rooms)
+    INSUFFICIENT_BALANCE = 'INSUFFICIENT_BALANCE'
+}
+
 enum OutputEventNameEnum {
     GAME_ENDED = 'GAME_ENDED', // no additional data - o
-    NEW_ROUND = 'NEW_ROUND', // no data - o
-
-    CARDS_DEALT = 'CARDS_DEALT', // data: { cards: Card[] } - o (send to private rooms)
-
-    GAME_PAUSED = 'GAME_PAUSED', // no data - o
-
-    ROUND_ENDING = 'ROUND_ENDING', // no data, players can still raise - o
+    NEXT_PLAYER = 'NEXT_PLAYER',
     ROUND_ENDED = 'ROUND_ENDED' // no data - all players have called or folded and revealed their cards, winners are known - o
 }
 
 interface Event {
-    name: HybridEventNameEnum | OutputEventNameEnum;
+    name: HybridEventNameEnum | OutputEventNameEnum | PrivateEventNameEnum;
     userId?: string;
 }
 interface HybridEvent {
@@ -35,6 +34,7 @@ interface HybridEvent {
 export type GameEvent = Event | HybridEvent;
 export {
     HybridEvent,
+    PrivateEventNameEnum,
     HybridEventNameEnum,
     OutputEventNameEnum
 };

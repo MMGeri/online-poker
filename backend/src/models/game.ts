@@ -13,9 +13,10 @@ interface IPlayer {
     inGameBalance: number;
     bet: number;
     called: boolean;
+    checked: boolean;
     raisedTimes: number;
     positionAtTable: number;
-    stillPlayingInRound: boolean;
+    folded: boolean;
     leftGame: boolean;
 }
 
@@ -26,9 +27,8 @@ interface IGame extends Document {
     ownerId: string;
     chatChannelId: string;
     currentBet: number;
-    players: {
-        [key: string]: IPlayer; // key is player.userId
-    };
+    players: Map<string, IPlayer>;
+    playerTurn: number; // TODO: default should be player at 0 position
     cardsOnTable: ICard[];
     cardsInDeck: ICard[];
     round: number;
@@ -40,6 +40,7 @@ interface IGame extends Document {
         key?: string;
         whiteList: string[];
         banList: string[];
+        maxRaises: number;
     };
 }
 
@@ -68,12 +69,17 @@ const gameSchema = new Schema({
             }],
             inGameBalance: Number,
             bet: Number,
+            checked: Boolean,
             called: Boolean,
-            raisedTimes: Number,
+            raisedTimes: Number, // max 4 raises per round
             positionAtTable: Number,
-            stillPlayingInRound: Boolean,
+            folded: Boolean,
             leftGame: Boolean
         }
+    },
+    playerTurn: {
+        type: Schema.Types.ObjectId,
+        ref: 'User'
     },
     cardsOnTable: [{
         value: String,
@@ -101,7 +107,8 @@ const gameSchema = new Schema({
         banList: [{
             type: Schema.Types.ObjectId,
             ref: 'User'
-        }]
+        }],
+        maxRaises: Number
     }
 }, { timestamps: true }); // Automatically adds createdAt and updatedAt
 
