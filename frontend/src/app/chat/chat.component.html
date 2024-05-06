@@ -1,7 +1,7 @@
 <div>
     <ul>
-        @for (m of messages; track m )
-        { <li>{{ m }}</li> }
+        @for (m of messages; track m._id )
+        { <li>{{ m.senderName }}>&nbsp;&nbsp;&nbsp;{{ m.message }}</li> }
     </ul>
     <input [(ngModel)]="message" (keydown.enter)="sendMessage()" type="text">
     <button (click)="sendMessage()">Send</button>
