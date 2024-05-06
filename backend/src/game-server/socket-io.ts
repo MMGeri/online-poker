@@ -53,6 +53,7 @@ io.on('connection', (socket: Socket) => {
     });
     socket.on('disconnect', () => {
         console.log('user disconnected');
+        // TODO: send pause event? or throw in event.
     });
 });
 

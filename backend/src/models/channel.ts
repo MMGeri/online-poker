@@ -4,12 +4,17 @@ const { Schema } = mongoose;
 
 interface IChannel extends Document {
     _id: string;
+    ownerId?: string;
     whiteList: string[];
     banList: string[];
     key: string;
 }
 
 const channelSchema = new Schema({
+    ownerId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+    },
     whiteList: [{
         type: Schema.Types.ObjectId,
         ref: 'User'

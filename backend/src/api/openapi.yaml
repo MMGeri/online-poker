@@ -4,11 +4,18 @@ info:
   title: Poker-API
   description: Progrendszerek projekt backend apija (Poker oldal no money)
 tags:
-  - name: Users
-    description: user specific actions like creating, logging in logging out
   - name: Auth
     description: authentication related actions
+  - name: Users
+    description: user specific actions like creating, logging in logging out
+  - name: Game
+    description: game related actions
+  - name: Chat
+    description: chat related actions
+  - name: Admin
+    description: admin related actions
 paths:
+# Auth
   /register:
     post:
       summary: Register a new user
@@ -95,6 +102,7 @@ paths:
                 $ref: "#/components/schemas/BaseError"
       security:
        - cookieAuth: []
+# Users 
   /users:
     get:
       summary: Get user information
@@ -102,6 +110,13 @@ paths:
       x-eov-operation-handler: api/controllers/user.controller
       tags:
         - Users
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: string
+          required: false
+          description: The id of the user to retrieve
       responses:
         '200':
           description: User information retrieved successfully
@@ -116,6 +131,7 @@ paths:
                 $ref: "#/components/schemas/BaseError"
       security:
         - cookieAuth: []
+  /users/{userId}:
     put:
       summary: Update user information
       operationId: updateUser
@@ -142,7 +158,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/BaseError"
       security:
-        - cookieAuth: []
+        - userSpecificCookieAuth: []
     delete:
       summary: Delete user
       operationId: deleteUser
@@ -161,7 +177,384 @@ paths:
               schema:
                 $ref: "#/components/schemas/BaseError"
       security:
+        - userSpecificCookieAuth: []
+# Game
+  /game/all:
+    get:
+      summary: Get all games
+      operationId: getGames
+      x-eov-operation-handler: api/controllers/game.controller
+      tags:
+        - Game
+      # query: page
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          required: false
+          default: 0
+          description: The page number to retrieve, games are sorted by playerCount -1
+      responses:
+        '200':
+          description: Games retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GamesResponse'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+  /game/{gameId}:
+    get:
+      summary: Get game by id
+      operationId: getGame
+      x-eov-operation-handler: api/controllers/game.controller
+      tags:
+        - Game
+      parameters:
+        - in: path
+          name: gameId
+          schema:
+            type: string
+          required: true
+          description: The id of the game to retrieve
+      responses:
+        '200':
+          description: Game retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameResponse'
+        '404':
+          description: Game not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - gameSpecificCookieAuth: []
+        - cookieAdminAuth: []
+    delete:
+      summary: Delete game
+      operationId: deleteGame
+      x-eov-operation-handler: api/controllers/game.controller
+      tags:
+        - Game
+      parameters:
+        - in: path
+          name: gameId
+          schema:
+            type: string
+          required: true
+          description: The id of the game to delete
+      responses:
+        '200':
+          description: Game deleted successfully
+        '404':
+          description: Game not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - gameSpecificCookieAuth: []
+        - cookieAdminAuth: []
+    put:
+      summary: Update game
+      operationId: updateGame
+      x-eov-operation-handler: api/controllers/game.controller
+      tags:
+        - Game
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                gameId:
+                  type: string
+                options:
+                  type: object
+                  properties:
+                    key:
+                      type: string
+                    whiteList:
+                      type: array
+                      items:
+                        type: string
+                    banList:
+                      type: array
+                      items:
+                        type: string
+      responses:
+        '200':
+          description: Game updated successfully
+        '404':
+          description: Game not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - gameSpecificCookieAuth: []
+        - cookieAdminAuth: []
+  /game/{gameId}/leave:
+    put:
+      summary: Leave game
+      operationId: leaveGame
+      x-eov-operation-handler: api/controllers/game.controller
+      tags:
+        - Game
+      parameters:
+        - in: path
+          name: gameId
+          schema:
+            type: string
+          required: true
+          description: The id of the game to leave
+      responses:
+        '200':
+          description: Game left successfully
+        '404':
+          description: Game not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - gameSpecificCookieAuth: []
+# Chat
+  /chat:
+    get:
+      summary: Get chat channel by id
+      operationId: getChat
+      x-eov-operation-handler: api/controllers/chat.controller
+      tags:
+        - Chat
+      parameters:
+        - in: query
+          name: chatId
+          schema:
+            type: string
+          required: true
+          description: The id of the chat channel to retrieve
+        - in: query
+          name: page
+          schema:
+            type: integer
+          required: false
+          default: 0
+          description: The page number to retrieve, messages are sorted by createdAt
+      responses:
+        '200':
+          description: Chat channel retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '404':
+          description: Chat channel not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
         - cookieAuth: []
+        - cookieAdminAuth: []
+    post:
+      summary: Create a new chat channel
+      operationId: createChat
+      x-eov-operation-handler: api/controllers/chat.controller
+      tags:
+        - Chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                options:
+                  type: object
+                  properties:
+                    key:
+                      type: string
+                    whiteList:
+                      type: array
+                      items:
+                        type: string
+                    banList:
+                      type: array
+                      items:
+                        type: string
+              required:
+                - options
+      responses:
+        '200':
+          description: Chat channel created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - cookieAuth: []
+        - cookieAdminAuth: []
+    delete:
+      summary: Delete chat channel
+      operationId: deleteChat
+      x-eov-operation-handler: api/controllers/chat.controller
+      tags:
+        - Chat
+      parameters:
+        - in: query
+          name: chatId
+          schema:
+            type: string
+          required: true
+          description: The id of the chat channel to delete
+      responses:
+        '200':
+          description: Chat channel deleted successfully
+        '404':
+          description: Chat channel not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - cookieAuth: []
+        - cookieAdminAuth: []
+  /chat/{channelId}/messages:
+    get:
+      summary: Get all messages of chat channel
+      operationId: getMessages
+      x-eov-operation-handler: api/controllers/chat.controller
+      tags:
+        - Chat
+      parameters:
+        - in: path
+          name: channelId
+          schema:
+            type: string
+          required: true
+          description: The id of the chat channel to retrieve messages of
+        - in: query
+          name: page
+          schema:
+            type: integer
+          required: false
+          default: 0
+          description: The page number to retrieve, messages are sorted by createdAt
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagesResponse'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - chatSpecificCookieAuth: []
+        - cookieAdminAuth: []
+  /chat/{userId}:
+    get:
+      summary: Get all chat channels of user
+      operationId: getChats
+      x-eov-operation-handler: api/controllers/chat.controller
+      tags:
+        - Chat
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+          description: The id of the user to retrieve chat channels of
+        - in: query
+          name: page
+          schema:
+            type: integer
+          required: false
+          default: 0
+          description: The page number to retrieve, chat channels are sorted by last message createdAt
+      responses:
+        '200':
+          description: Chat channels retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatsResponse'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - userSpecificCookieAuth: []
+        - cookieAdminAuth: []
+# Admin
+# TODO: implement admin routes
 components:
   schemas:
     UserRegistration:
@@ -224,6 +617,153 @@ components:
       additionalProperties: false
       required:
         - _id
+    GamesResponse: # TODO: remove unvanted fields like user balance, and populate user, also remove cards etc.
+      type: array
+      items:
+        type: object
+        properties:
+          _id:
+            type: string
+          ownerId:
+            type: string
+          chatChannelId:
+            type: string
+          players:
+            type: array
+            items:
+              type: object
+              properties:
+                userId:
+                  type: string
+                positionAtTable:
+                  type: number
+                stillPlayingInRound:
+                  type: boolean
+                leftGame:
+                  type: boolean
+          round:
+            type: number
+          phase:
+            type: string
+    GameResponse: # TODO: remove unvanted fields like user balance, and populate user
+      type: object
+      properties:
+        _id:
+          type: string
+        ownerId:
+          type: string
+        chatChannelId:
+          type: string
+        players:
+          type: array
+          items:
+            type: object
+            properties:
+              userId:
+                type: string
+              cards:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    value:
+                      type: string
+                    sign:
+                      type: string
+              inGameBalance:
+                type: number
+              bet:
+                type: number
+              called:
+                type: boolean
+              raisedTimes:
+                type: number
+              positionAtTable:
+                type: number
+              stillPlayingInRound:
+                type: boolean
+              leftGame:
+                type: boolean
+        cardsOnTable:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: string
+              sign:
+                type: string
+        cardsInDeck:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: string
+              sign:
+                type: string
+        round:
+          type: number
+        paused:
+          type: boolean
+        phase:
+          type: string
+        options:
+          type: object
+          properties:
+            key:
+              type: string
+            whiteList:
+              type: array
+              items:
+                type: string
+            banList:
+              type: array
+              items:
+                type: string
+    ChatsResponse:
+      type: array
+      items:
+        type: object
+        schema:
+          $ref: '#/components/schemas/ChatResponse'
+    ChatResponse:
+      type: object
+      properties:
+        type: object
+        properties:
+          _id:
+            type: string
+          ownerId:
+            type: string
+          whiteList:
+            type: array
+            items:
+              type: string
+          banList:
+            type: array
+            items:
+              type: string
+          key:
+            type: string
+    MessageResponse:
+      type: object
+      properties:
+        _id:
+          type: string
+        channelId:
+          type: string
+        senderId:
+          type: string
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    MessagesResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/MessageResponse'
     BaseError:
       type: object
       properties:
@@ -237,6 +777,22 @@ components:
           type: string
   securitySchemes:
     cookieAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid
+    userSpecificCookieAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid
+    chatSpecificCookieAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid
+    gameSpecificCookieAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid
+    cookieAdminAuth:
       type: apiKey
       in: cookie
       name: connect.sid
