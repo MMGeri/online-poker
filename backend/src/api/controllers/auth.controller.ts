@@ -1,12 +1,12 @@
 import { createHash } from 'crypto';
 import { Response, Request, NextFunction } from 'express';
 import passport from 'passport';
-import { User } from '../../models/user';
+import { IUser } from '../../models/user';
 import { BaseError } from '../middleware/error-handler';
 import { dbService } from '../../shared/services/db.service';
 
 async function login(req: Request, res: Response) {
-    passport.authenticate('local', (error: any, user: User) => {
+    passport.authenticate('local', (error: any, user: IUser) => {
         if (error) {
             res.status(error.status ?? 500).send({ message: error.message, ...error });
             return;

@@ -1,76 +1,98 @@
 import { FilterQuery, MongooseQueryOptions, ProjectionFields } from 'mongoose';
-import * as models from '../../models/index';
-import { User } from '../../models/user';
-import { Game } from '../../models/game';
-import { Message } from '../../models/message';
+import { UserModel, IUser } from '../../models/user';
+import { GameModel, IGame } from '../../models/game';
+import { MessageModel, IMessage } from '../../models/message';
+import { ChannelModel, IChannel } from '../../models/channel';
 
 const maxTimeMs = 2000;
 
 export const dbService = {
     getUsersByQuery(
-        query: FilterQuery<typeof models.User>,
-        projection?: ProjectionFields<typeof models.User>,
-        options?: MongooseQueryOptions): Promise<User[]> {
-        const users = models.User.find(query, projection, { maxTimeMs, ...options }).lean().exec();
+        query: FilterQuery<typeof UserModel>,
+        projection?: ProjectionFields<typeof UserModel>,
+        options?: MongooseQueryOptions): Promise<IUser[]> {
+        const users = UserModel.find(query, projection, { maxTimeMs, ...options }).lean().exec();
         return users;
     },
 
     updateUserById(
         id: string,
-        update: Partial<User>,
-        options?: MongooseQueryOptions): Promise<User | null> {
-        return models.User.findByIdAndUpdate(id, update, { maxTimeMs, ...options }).lean().exec();
+        update: Partial<IUser>,
+        options?: MongooseQueryOptions): Promise<IUser | null> {
+        return UserModel.findByIdAndUpdate(id, update, { maxTimeMs, ...options }).lean().exec();
     },
 
-    createUser(user: Partial<User>): Promise<User> {
-        return models.User.create(user);
+    createUser(user: Partial<IUser>): Promise<IUser> {
+        return UserModel.create(user);
     },
 
-    deleteUserById(id: string): Promise<User | null> {
-        return models.User.findByIdAndDelete(id, { maxTimeMs }).lean().exec();
+    deleteUserById(id: string): Promise<IUser | null> {
+        return UserModel.findByIdAndDelete(id, { maxTimeMs }).lean().exec();
     },
 
     getGamesByQuery(
-        query: FilterQuery<typeof models.Game>,
-        projection?: ProjectionFields<typeof models.Game>,
+        query: FilterQuery<typeof GameModel>,
+        projection?: ProjectionFields<typeof GameModel>,
         options?: MongooseQueryOptions) {
-        return models.Game.find(query, projection, { maxTimeMs, ...options }).lean().exec();
+        return GameModel.find(query, projection, { maxTimeMs, ...options }).lean().exec();
     },
 
     updateGameById(
         id: string,
-        update: Partial<Game>,
+        update: Partial<IGame>,
         options?: MongooseQueryOptions) {
-        return models.Game.findByIdAndUpdate(id, update, { maxTimeMs, ...options }).lean().exec();
+        return GameModel.findByIdAndUpdate(id, update, { maxTimeMs, ...options }).lean().exec();
     },
 
-    createGame(game: Partial<Game>) {
-        return models.Game.create(game);
+    createGame(game: Partial<IGame>) {
+        return GameModel.create(game);
     },
 
     deleteGameById(id: string) {
-        return models.Game.findByIdAndDelete(id, { maxTimeMs }).lean().exec();
+        return GameModel.findByIdAndDelete(id, { maxTimeMs }).lean().exec();
     },
 
     getMessagesByQuery(
-        query: FilterQuery<typeof models.Message>,
-        projection?: ProjectionFields<typeof models.Message>,
+        query: FilterQuery<typeof MessageModel>,
+        projection?: ProjectionFields<typeof MessageModel>,
         options?: MongooseQueryOptions) {
-        return models.Message.find(query, projection, { maxTimeMs, ...options }).lean().exec();
+        return MessageModel.find(query, projection, { maxTimeMs, ...options }).lean().exec();
     },
 
     updateMessageById(
         id: string,
-        update: Message,
+        update: IMessage,
         options?: MongooseQueryOptions) {
-        return models.Message.findByIdAndUpdate(id, update, { maxTimeMs, ...options }).lean().exec();
+        return MessageModel.findByIdAndUpdate(id, update, { maxTimeMs, ...options }).lean().exec();
     },
 
-    createMessage(message: Message) {
-        return models.Message.create(message, { maxTimeMs });
+    createMessage(message: IMessage) {
+        return MessageModel.create(message, { maxTimeMs });
     },
 
     deleteMessageById(id: string) {
-        return models.Message.findByIdAndDelete(id, { maxTimeMs }).lean().exec();
+        return MessageModel.findByIdAndDelete(id, { maxTimeMs }).lean().exec();
+    },
+
+    getChannelsByQuery(
+        query: FilterQuery<typeof ChannelModel>,
+        projection?: ProjectionFields<typeof ChannelModel>,
+        options?: MongooseQueryOptions) {
+        return ChannelModel.find(query, projection, { maxTimeMs, ...options }).lean().exec();
+    },
+
+    updateChannelById(
+        id: string,
+        update: Partial<IChannel>,
+        options?: MongooseQueryOptions) {
+        return ChannelModel.findByIdAndUpdate(id, update, { maxTimeMs, ...options }).lean().exec();
+    },
+
+    createChannel(channel: Partial<IChannel>) {
+        return ChannelModel.create(channel);
+    },
+
+    deleteChannelById(id: string) {
+        return ChannelModel.findByIdAndDelete(id, { maxTimeMs }).lean().exec();
     }
 };

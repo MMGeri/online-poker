@@ -2,14 +2,14 @@ import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
 
-export interface Card {
+interface ICard {
     value: string;
     sign: string;
 }
 
-export interface Player {
+interface IPlayer {
     userId: string;
-    cards: Card[];
+    cards: ICard[];
     inGameBalance: number;
     bet: number;
     called: boolean;
@@ -19,23 +19,32 @@ export interface Player {
     leftGame: boolean;
 }
 
-export interface Game extends Document {
+interface IGame extends Document {
     _id: string;
     ownerId: string;
-    players: Player[];
-    whiteList: string[];
-    banList: string[];
-    cardsOnTable: Card[];
-    cardsInDeck: Card[];
+    chatChannelId: string;
+    players: IPlayer[];
+    cardsOnTable: ICard[];
+    cardsInDeck: ICard[];
     round: number;
     paused: boolean;
     phase: string;
+    options: {
+        key?: string;
+        whiteList: string[];
+        banList: string[];
+    };
 }
 
 const gameSchema = new Schema({
     ownerId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
+        required: true
+    },
+    chatChannelId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Channel',
         required: true
     },
     players: [{
@@ -55,14 +64,6 @@ const gameSchema = new Schema({
         stillPlayingInRound: Boolean,
         leftGame: Boolean
     }],
-    whiteList: [{
-        type: Schema.Types.ObjectId,
-        ref: 'User'
-    }],
-    banList: [{
-        type: Schema.Types.ObjectId,
-        ref: 'User'
-    }],
     cardsOnTable: [{
         value: String,
         sign: String
@@ -77,8 +78,19 @@ const gameSchema = new Schema({
         type: String,
         enum: ['Blinds', 'Pre-flop', 'Flop', 'Turn', 'River'],
         default: 'Blinds'
+    },
+    options: {
+        key: String,
+        whiteList: [{
+            type: Schema.Types.ObjectId,
+            ref: 'User'
+        }],
+        banList: [{
+            type: Schema.Types.ObjectId,
+            ref: 'User'
+        }]
     }
 }, { timestamps: true }); // Automatically adds createdAt and updatedAt
 
-const GameModel = mongoose.model<Game>('Game', gameSchema);
-export default GameModel;
+const GameModel = mongoose.model<IGame>('Game', gameSchema);
+export { GameModel, IGame, IPlayer, ICard };

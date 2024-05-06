@@ -1,3 +1,4 @@
+/* eslint-disable import/order */
 import path from 'path';
 import http from 'http';
 import express, { NextFunction, Request, Response } from 'express';
@@ -9,8 +10,8 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import { BaseError, ErrorHandler } from './api/middleware/error-handler';
 import { config } from './config';
-import { configurePassport } from './shared/utils/passport';
 import { connect } from './connection';
+import { configurePassport } from './shared/utils/passport';
 
 const port = config.port;
 const apiDefPath = path.join(__dirname, 'api/openapi.yaml');
@@ -20,20 +21,46 @@ const sessionOptions: expressSession.SessionOptions = {
     saveUninitialized: false
 };
 
+const whitelist = config.whitelist;
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+
+const passportSession = passport.session();
+const expressSessionMiddleware = expressSession(sessionOptions);
+const io = new Server(server, {
+    cors: {
+        origin: whitelist,
+        credentials: true
+    }
+});
+const corsOptions = {
+    origin: (origin: string | undefined, callback: (error: Error | null, allowed?: boolean) => void) => {
+        if (!config.production && !origin) {
+            callback(null, true);
+            return;
+        }
+        if (whitelist.indexOf(origin!) !== -1) {
+            callback(null, true);
+            return;
+        } else {
+            callback(new BaseError('CorsError', 403, 'Not allowed by CORS', 'backend cors middleware'));
+            return;
+        }
+    },
+    credentials: true
+};
 const errorHandler = new ErrorHandler();
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     errorHandler.handleError(err, req, res, next);
 });
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(expressSession(sessionOptions));
+app.use(expressSessionMiddleware);
 app.use(passport.initialize());
-app.use(passport.session());
+app.use(passportSession);
 configurePassport(passport);
 app.use(OpenApiValidator.middleware({
     apiSpec: apiDefPath,
@@ -48,28 +75,24 @@ app.use(OpenApiValidator.middleware({
     },
     validateSecurity: {
         handlers: {
-            cookieAuth: (req, scopes, schema) => req.isAuthenticated()
+            cookieAuth: (req, scopes, schema) => req.isAuthenticated(),
+            cookieAdminAuth: (req, scopes, schema) => req.isAuthenticated() && (req.user as IUser).roles.includes('admin')
         }
     }
 }));
-
-// Connect to MongoDB
-connect();
-
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     errorHandler.handleError(err, req, res, next);
 });
 
-io.on('connection', (socket) => {
-    console.log('a user connected');
-    socket.on('disconnect', () => {
-        console.log('user disconnected');
-    });
-});
-app.use(cors());
+// Connect to MongoDB
+connect();
+
 
 server.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
+import './game-server/socket-io';
+import { IUser } from './models/user';
 
 export default app;
+export { io, passportSession, expressSessionMiddleware };
