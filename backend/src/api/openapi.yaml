@@ -138,6 +138,13 @@ paths:
       x-eov-operation-handler: api/controllers/user.controller
       tags:
         - Users
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+          description: The id of the user
       requestBody:
         required: true
         content:
@@ -165,6 +172,13 @@ paths:
       x-eov-operation-handler: api/controllers/user.controller
       tags:
         - Users
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+          description: The id of the user
       responses:
         '200':
           description: User deleted successfully
@@ -193,8 +207,7 @@ paths:
           schema:
             type: integer
           required: false
-          default: 0
-          description: The page number to retrieve, games are sorted by playerCount -1
+          description: The page number to retrieve, games are sorted by playerCount
       responses:
         '200':
           description: Games retrieved successfully
@@ -283,6 +296,13 @@ paths:
       x-eov-operation-handler: api/controllers/game.controller
       tags:
         - Game
+      parameters:
+        - in: path
+          name: gameId
+          schema:
+            type: string
+          required: true
+          description: The id of the game to retrieve
       requestBody:
         required: true
         content:
@@ -374,7 +394,6 @@ paths:
           schema:
             type: integer
           required: false
-          default: 0
           description: The page number to retrieve, messages are sorted by createdAt
       responses:
         '200':
@@ -498,7 +517,6 @@ paths:
           schema:
             type: integer
           required: false
-          default: 0
           description: The page number to retrieve, messages are sorted by createdAt
       responses:
         '200':
@@ -535,7 +553,6 @@ paths:
           schema:
             type: integer
           required: false
-          default: 0
           description: The page number to retrieve, chat channels are sorted by last message createdAt
       responses:
         '200':
@@ -724,28 +741,24 @@ components:
     ChatsResponse:
       type: array
       items:
-        type: object
-        schema:
-          $ref: '#/components/schemas/ChatResponse'
+        $ref: '#/components/schemas/ChatResponse'
     ChatResponse:
       type: object
       properties:
-        type: object
-        properties:
-          _id:
+        _id:
+          type: string
+        ownerId:
+          type: string
+        whiteList:
+          type: array
+          items:
             type: string
-          ownerId:
+        banList:
+          type: array
+          items:
             type: string
-          whiteList:
-            type: array
-            items:
-              type: string
-          banList:
-            type: array
-            items:
-              type: string
-          key:
-            type: string
+        key:
+          type: string
     MessageResponse:
       type: object
       properties:

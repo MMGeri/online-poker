@@ -1,6 +1,4 @@
 import { Response, Request } from 'express';
-import { get } from 'mongoose';
-import passport from 'passport';
 
 module.exports = {
     deleteUser: (req: Request, res: Response) => { },
