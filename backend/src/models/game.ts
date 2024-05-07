@@ -15,6 +15,8 @@ interface IPlayer {
     called: boolean;
     checked: boolean;
     raisedTimes: number;
+    tapped: boolean;
+    tappedAtPot: number;
     positionAtTable: number;
     folded: boolean;
     leftGame: boolean;
@@ -26,7 +28,7 @@ interface IGame extends Document {
     _id: string;
     ownerId: string;
     chatChannelId: string;
-    currentBet: number;
+    pot: number;
     players: Map<string, IPlayer>;
     playerTurn: number; // TODO: default should be player at 0 position
     cardsOnTable: ICard[];
@@ -55,7 +57,7 @@ const gameSchema = new Schema({
         ref: 'Channel',
         required: true
     },
-    currentBet: Number,
+    pot: Number,
     players: {
         type: Map,
         of: {
@@ -71,7 +73,9 @@ const gameSchema = new Schema({
             bet: Number,
             checked: Boolean,
             called: Boolean,
-            raisedTimes: Number, // max 4 raises per round
+            raisedTimes: Number,
+            tapped: Boolean,
+            tappedAtPot: Number,
             positionAtTable: Number,
             folded: Boolean,
             leftGame: Boolean
