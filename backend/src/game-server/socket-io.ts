@@ -49,13 +49,7 @@ io.on('connection', (socket: Socket) => {
     });
     socket.on('game-event', async (obj: { inputEvent: HybridEvent; gameId: string }) => {
         obj.inputEvent.userId = user._id;
-        if (!userIsPartOfChannel(sid, `game:${obj.gameId}`)) {
-            return;
-        }
-        if (!isInputEvent(obj.inputEvent)) {
-            return;
-        }
-        if (!userOwnsSocket(user._id, obj.inputEvent.userId)) {
+        if (!userIsPartOfChannel(sid, `game:${obj.gameId}`) || !isInputEvent(obj.inputEvent) || !userOwnsSocket(user._id, obj.inputEvent.userId)) {
             return;
         }
         const gameEventManager = gems.getGameEventManager(obj.gameId);
@@ -69,9 +63,6 @@ io.on('connection', (socket: Socket) => {
     });
     socket.on('disconnect', () => {
         console.log('user disconnected');
-        // TODO: send user left to game:id or chat:id room event
-        // TODO: send pause event? or throw in event.
-        // TODO: tell game manager?
     });
 });
 
