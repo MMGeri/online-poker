@@ -1,26 +1,25 @@
-import mongoose from 'mongoose';
-
-const { Schema } = mongoose;
+import mongoose, { Document, Schema, Model, Types } from 'mongoose';
 
 interface IMessage extends Document {
-    _id: string;
     channelId: string;
     senderId: string;
     message: string;
 }
 
-const messageSchema = new Schema({
+const messageSchema = new Schema<IMessage>({
     channelId: {
-        type: Schema.Types.ObjectId,
+        type: String,
         ref: 'Game',
-        index: true
+        index: true,
+        required: true
     },
     senderId: {
-        type: Schema.Types.ObjectId,
-        ref: 'User'
+        type: String,
+        ref: 'User',
+        required: true
     },
     message: String
 }, { timestamps: true }); // Automatically adds createdAt and updatedAt
 
-const MessageModel = mongoose.model<IMessage>('Message', messageSchema);
+const MessageModel: Model<IMessage> = mongoose.model<IMessage>('Message', messageSchema);
 export { MessageModel, IMessage };

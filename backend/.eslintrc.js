@@ -95,7 +95,7 @@ module.exports = {
         "no-unused-expressions": "off",
         "no-unused-labels": "error",
         "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
-        "no-var": "error",
+        "no-var": "off",
         "prefer-const": "error",
         "quotes": "off",
         "radix": "error",

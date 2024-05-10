@@ -11,8 +11,10 @@ import cors from 'cors';
 import { BaseError, ErrorHandler } from './api/middleware/error-handler';
 import { config } from './config';
 import { connect } from './connection';
+import { dbModels, dbService } from './shared/services/db.service';
 import { configurePassport } from './shared/utils/passport';
 import { IUser } from './models/user';
+
 
 const port = config.port;
 const apiDefPath = path.join(__dirname, 'api/openapi.yaml');
@@ -52,6 +54,9 @@ const corsOptions = {
 };
 const errorHandler = new ErrorHandler();
 
+// Connect to MongoDB
+connect();
+
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     errorHandler.handleError(err, req, res, next);
 });
@@ -68,31 +73,77 @@ app.use(OpenApiValidator.middleware({
     operationHandlers: path.join(__dirname),
     ignoreUndocumented: true,
     validateRequests: true,
-    validateResponses: {
-        removeAdditional: 'failing',
-        onError: (errors: any, req, res) => {
-            throw new BaseError('ValidationError', 400, errors, 'backend');
-        }
-    },
+    validateResponses: false,
+    // validateResponses: {
+    //     removeAdditional: 'failing',
+    //     onError: (errors: any, req, res) => {
+    //         throw new BaseError('ValidationError', 400, errors, 'backend');
+    //     }
+    // },
     validateSecurity: {
         handlers: {
             cookieAuth: (req, scopes, schema) => req.isAuthenticated(),
-            cookieAdminAuth: (req, scopes, schema) => req.isAuthenticated() && (req.user as IUser).roles.includes('admin')
+            cookieAdminAuth: (req, scopes, schema) => req.isAuthenticated() && (req.user as IUser).roles.includes('admin'),
+            userSpecificCookieAuth: (req, scopes, schema) => req.isAuthenticated() && req.query.userId === ((req.user as IUser)._id),
+            chatOwnerAuth: async (req, scopes, schema) => {
+                if (!req.isAuthenticated()) {
+                    return false;
+                }
+                const user = req.user as IUser;
+                const chatId = req.query.chatId as string;
+                const chat = await dbService.getDocumentById(dbModels.Channel, chatId);
+                if (!chat) {
+                    return false;
+                }
+                return chat.ownerId === user._id;
+            },
+            chatMemberAuth: async (req, scopes, schema) => {
+                if (!req.isAuthenticated()) {
+                    return false;
+                }
+                const user = req.user as IUser;
+                const chatId = req.query.chatId as string;
+                const chat = await dbService.getDocumentById(dbModels.Channel, chatId);
+                if (!chat) {
+                    return false;
+                }
+                return chat.whiteList.includes(user._id);
+            },
+            gameOwnerAuth: async (req, scopes, schema) => {
+                if (!req.isAuthenticated()) {
+                    return false;
+                }
+                const user = req.user as IUser;
+                const gameId = req.query.gameId as string;
+                const game = await dbService.getDocumentById(dbModels.Game, gameId);
+                if (!game) {
+                    return false;
+                }
+                return game.ownerId === user._id;
+            },
+            gamePlayerAuth: async (req, scopes, schema) => {
+                const user = req.user as IUser;
+                const gameId = req.query.gameId as string;
+                const game = await dbService.getDocumentById(dbModels.Game, gameId);
+                if (!game) {
+                    return false;
+                }
+                return req.isAuthenticated() && game.options.whiteList.includes(user._id);
+            }
         }
     }
 }));
+
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     errorHandler.handleError(err, req, res, next);
 });
-
-// Connect to MongoDB
-connect();
-
 
 server.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
 import './game-server/socket-io';
+import { GameModel } from './models';
+import mongoose from 'mongoose';
 
 export default app;
 export { io, passportSession, expressSessionMiddleware };

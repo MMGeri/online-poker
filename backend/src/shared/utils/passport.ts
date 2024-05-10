@@ -3,7 +3,7 @@ import { PassportStatic } from 'passport';
 import { Strategy } from 'passport-local';
 import { IUser } from '../../models/user';
 import { BaseError } from '../../api/middleware/error-handler';
-import { dbService } from '../services/db.service';
+import { dbModels, dbService } from '../services/db.service';
 
 export const configurePassport = (passport: PassportStatic): PassportStatic => {
 
@@ -18,7 +18,7 @@ export const configurePassport = (passport: PassportStatic): PassportStatic => {
     });
 
     passport.use('local', new Strategy(async (username: string, password: string, done: Function) => {
-        const userFromDb: IUser[] = await dbService.getUsersByQuery({ username });
+        const userFromDb: IUser[] = await dbService.getDocumentsByQuery(dbModels.User, { username });
         const hasRoles = userFromDb[0].roles.length > 0;
         if (checkPassword(password, userFromDb[0].hashedPassword) && hasRoles) {
             done(null, userFromDb[0]);

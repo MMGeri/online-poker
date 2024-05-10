@@ -1,10 +1,9 @@
-import mongoose from 'mongoose';
-
-const { Schema } = mongoose;
+import mongoose, { Document, Schema, Model, Types } from 'mongoose';
+import { phases } from '../game-server/game-event.manager';
 
 interface ICard {
-    value: string;
-    sign: string;
+    value: '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A';
+    sign: 'hearts' | 'diamonds' | 'clubs' | 'spades';
 }
 
 interface IPlayer {
@@ -20,101 +19,161 @@ interface IPlayer {
     positionAtTable: number;
     folded: boolean;
     leftGame: boolean;
+    ready: boolean;
 }
 
-export type Phase = 'Blinds' | 'Pre-flop' | 'Flop' | 'Turn' | 'River';
-
 interface IGame extends Document {
-    _id: string;
     ownerId: string;
     chatChannelId: string;
     pot: number;
     players: Map<string, IPlayer>;
-    playerTurn: number; // TODO: default should be player at 0 position
+    playerTurn: number;
     cardsOnTable: ICard[];
     cardsInDeck: ICard[];
     round: number;
-    paused: boolean;
-    phase: Phase;
+    phase: typeof phases[number];
     gameStarted: boolean;
     gameOver: boolean;
     options: {
         key?: string;
         whiteList: string[];
         banList: string[];
+        maxPlayers: number;
         maxRaises: number;
     };
 }
 
-const gameSchema = new Schema({
+const gameSchema = new Schema<IGame>({
     ownerId: {
-        type: Schema.Types.ObjectId,
+        type: String,
         ref: 'User',
         required: true
     },
     chatChannelId: {
-        type: Schema.Types.ObjectId,
+        type: String,
         ref: 'Channel',
         required: true
     },
-    pot: Number,
+    pot: {
+        type: Number,
+        default: 0
+    },
     players: {
         type: Map,
         of: {
-            userId: {
-                type: Schema.Types.ObjectId,
-                ref: 'User'
-            },
-            cards: [{
-                value: String,
-                sign: String
-            }],
-            inGameBalance: Number,
-            bet: Number,
-            checked: Boolean,
-            called: Boolean,
-            raisedTimes: Number,
-            tapped: Boolean,
-            tappedAtPot: Number,
-            positionAtTable: Number,
-            folded: Boolean,
-            leftGame: Boolean
+            type: {
+                userId: {
+                    type: String,
+                    ref: 'User',
+                    required: true
+                },
+                cards: {
+                    type: [{
+                        value: String,
+                        sign: String
+                    }],
+                    default: []
+                },
+                inGameBalance: {
+                    type: Number,
+                    default: 0
+                },
+                bet: {
+                    type: Number,
+                    default: 0
+                },
+                checked: {
+                    type: Boolean,
+                    default: false
+                },
+                called: {
+                    type: Boolean,
+                    default: false
+                },
+                raisedTimes: {
+                    type: Number,
+                    default: 0
+                },
+                tapped: {
+                    type: Boolean,
+                    default: false
+                },
+                tappedAtPot: {
+                    type: Number,
+                    default: 0
+                },
+                positionAtTable: {
+                    type: Number,
+                    default: 0
+                },
+                folded: {
+                    type: Boolean,
+                    default: false
+                },
+                leftGame: {
+                    type: Boolean,
+                    default: false
+                }
+            }
         }
     },
     playerTurn: {
-        type: Schema.Types.ObjectId,
-        ref: 'User'
+        type: Number,
+        default: 0
     },
-    cardsOnTable: [{
-        value: String,
-        sign: String
-    }],
-    cardsInDeck: [{
-        value: String,
-        sign: String
-    }],
-    round: Number,
-    paused: Boolean,
+    cardsOnTable: {
+        type: [{
+            value: String,
+            sign: String
+        }],
+        default: []
+    },
+    cardsInDeck: {
+        type: [{
+            value: String,
+            sign: String
+        }],
+        default: []
+    },
+    round: {
+        type: Number,
+        default: 0
+    },
     phase: {
         type: String,
-        enum: ['Blinds', 'Pre-flop', 'Flop', 'Turn', 'River'],
-        default: 'Blinds'
+        enum: phases,
+        default: 'Getting-Ready'
     },
-    gameStarted: Boolean,
-    gameOver: Boolean,
+    gameStarted: {
+        type: Boolean,
+        default: false
+    },
+    gameOver: {
+        type: Boolean,
+        default: false
+    },
     options: {
         key: String,
-        whiteList: [{
-            type: Schema.Types.ObjectId,
-            ref: 'User'
-        }],
-        banList: [{
-            type: Schema.Types.ObjectId,
-            ref: 'User'
-        }],
-        maxRaises: Number
+        whiteList: {
+            type: [{
+                type: String,
+                ref: 'User'
+            }],
+            default: []
+        },
+        banList: {
+            type: [{
+                type: String,
+                ref: 'User'
+            }],
+            default: []
+        },
+        maxRaises: {
+            type: Number,
+            default: 4
+        }
     }
 }, { timestamps: true }); // Automatically adds createdAt and updatedAt
 
-const GameModel = mongoose.model<IGame>('Game', gameSchema);
+const GameModel: Model<IGame> = mongoose.model<IGame>('Game', gameSchema);
 export { GameModel, IGame, IPlayer, ICard };

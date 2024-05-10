@@ -1,98 +1,94 @@
-import { FilterQuery, MongooseQueryOptions, ProjectionFields } from 'mongoose';
-import { UserModel, IUser } from '../../models/user';
-import { GameModel, IGame } from '../../models/game';
-import { MessageModel, IMessage } from '../../models/message';
-import { ChannelModel, IChannel } from '../../models/channel';
+import { FilterQuery, MongooseQueryOptions, ProjectionFields, UpdateQuery } from 'mongoose';
+import { ChannelModel, GameModel, IChannel, IGame, IMessage, IUser, MessageModel, UserModel } from '../../models';
 
-const maxTimeMs = 2000;
+export enum dbModels {
+    User = 'User',
+    Game = 'Game',
+    Message = 'Message',
+    Channel = 'Channel'
+}
+
+type ModelType<T> = T extends dbModels.User ? typeof UserModel :
+    T extends dbModels.Game ? typeof GameModel :
+    T extends dbModels.Message ? typeof MessageModel :
+    T extends dbModels.Channel ? typeof ChannelModel :
+    never;
+
+type InterfaceType<T> = T extends typeof UserModel ? IUser :
+    T extends typeof GameModel ? IGame :
+    T extends typeof MessageModel ? IMessage :
+    T extends typeof ChannelModel ? IChannel :
+    never;
+
+function getModel<T extends dbModels>(model: T) {
+    switch (model) {
+        case dbModels.User:
+            return UserModel;
+        case dbModels.Game:
+            return GameModel;
+        case dbModels.Message:
+            return MessageModel;
+        case dbModels.Channel:
+            return ChannelModel;
+    }
+    throw new Error('Invalid model');
+}
 
 export const dbService = {
-    getUsersByQuery(
-        query: FilterQuery<typeof UserModel>,
-        projection?: ProjectionFields<typeof UserModel>,
-        options?: MongooseQueryOptions): Promise<IUser[]> {
-        const users = UserModel.find(query, projection, { maxTimeMs, ...options }).lean().exec();
-        return users;
+    getDocumentById<T extends dbModels>(model: T, _id: string): Promise<InterfaceType<ModelType<T>> | null> {
+        // @ts-expect-error - it's fine
+        return getModel(model).findById(_id).exec();
     },
 
-    updateUserById(
-        id: string,
-        update: Partial<IUser>,
-        options?: MongooseQueryOptions): Promise<IUser | null> {
-        return UserModel.findByIdAndUpdate(id, update, { maxTimeMs, ...options }).lean().exec();
+    // generic methods
+    getDocumentsByQuery<T extends dbModels>(
+        model: T,
+        query?: FilterQuery<ModelType<T>>,
+        page?: number,
+        projection?: ProjectionFields<ModelType<T>>,
+        options?: MongooseQueryOptions
+    ): Promise<InterfaceType<ModelType<T>>[]> {
+        const Model = getModel(model);
+        console.log(Model);
+        // @ts-expect-error - it's fine
+        let queryBuilder = Model.find(query, projection, options);
+        if (page !== undefined) {
+            queryBuilder = queryBuilder.skip(page * 10).limit(10);
+        }
+        return queryBuilder.exec();
     },
 
-    createUser(user: Partial<IUser>): Promise<IUser> {
-        return UserModel.create(user);
+    updateDocumentById<T extends dbModels>(
+        model: T,
+        _id: string,
+        update: UpdateQuery<Partial<InterfaceType<ModelType<T>>>>,
+        options?: MongooseQueryOptions
+    ): Promise<InterfaceType<ModelType<T>> | null> {
+        // @ts-expect-error - it's fine
+        return getModel(model).findByIdAndUpdate(_id, update, { new: true, ...options }).exec();
     },
 
-    deleteUserById(id: string): Promise<IUser | null> {
-        return UserModel.findByIdAndDelete(id, { maxTimeMs }).lean().exec();
+    createDocument<T extends dbModels>(
+        model: T,
+        document: Partial<InterfaceType<ModelType<T>>>
+    ): Promise<InterfaceType<ModelType<T>>> {
+        // @ts-expect-error - it's fine
+        return getModel(model).create(document);
     },
 
-    getGamesByQuery(
-        query: FilterQuery<typeof GameModel>,
-        projection?: ProjectionFields<typeof GameModel>,
-        options?: MongooseQueryOptions) {
-        return GameModel.find(query, projection, { maxTimeMs, ...options }).lean().exec();
+    deleteDocumentById<T extends dbModels>(
+        model: T,
+        _id: string
+    ): Promise<InterfaceType<ModelType<T>> | null> {
+        // @ts-expect-error - it's fine
+        return getModel(model).findByIdAndDelete(_id).exec();
     },
 
-    updateGameById(
-        id: string,
-        update: Partial<IGame>,
-        options?: MongooseQueryOptions) {
-        return GameModel.findByIdAndUpdate(id, update, { maxTimeMs, ...options }).lean().exec();
-    },
-
-    createGame(game: Partial<IGame>) {
-        return GameModel.create(game);
-    },
-
-    deleteGameById(id: string) {
-        return GameModel.findByIdAndDelete(id, { maxTimeMs }).lean().exec();
-    },
-
-    getMessagesByQuery(
-        query: FilterQuery<typeof MessageModel>,
-        projection?: ProjectionFields<typeof MessageModel>,
-        options?: MongooseQueryOptions) {
-        return MessageModel.find(query, projection, { maxTimeMs, ...options }).lean().exec();
-    },
-
-    updateMessageById(
-        id: string,
-        update: IMessage,
-        options?: MongooseQueryOptions) {
-        return MessageModel.findByIdAndUpdate(id, update, { maxTimeMs, ...options }).lean().exec();
-    },
-
-    createMessage(message: IMessage) {
-        return MessageModel.create(message, { maxTimeMs });
-    },
-
-    deleteMessageById(id: string) {
-        return MessageModel.findByIdAndDelete(id, { maxTimeMs }).lean().exec();
-    },
-
-    getChannelsByQuery(
-        query: FilterQuery<typeof ChannelModel>,
-        projection?: ProjectionFields<typeof ChannelModel>,
-        options?: MongooseQueryOptions) {
-        return ChannelModel.find(query, projection, { maxTimeMs, ...options }).lean().exec();
-    },
-
-    updateChannelById(
-        id: string,
-        update: Partial<IChannel>,
-        options?: MongooseQueryOptions) {
-        return ChannelModel.findByIdAndUpdate(id, update, { maxTimeMs, ...options }).lean().exec();
-    },
-
-    createChannel(channel: Partial<IChannel>) {
-        return ChannelModel.create(channel);
-    },
-
-    deleteChannelById(id: string) {
-        return ChannelModel.findByIdAndDelete(id, { maxTimeMs }).lean().exec();
+    deleteDocumentsByIds<T extends dbModels>(
+        model: T,
+        _ids: string[]
+    ): Promise<InterfaceType<ModelType<T>>[]> {
+        // @ts-expect-error - it's fine
+        return getModel(model).deleteMany({ _id: { $in: _ids } }).exec();
     }
 };

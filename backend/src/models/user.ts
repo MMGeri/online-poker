@@ -1,8 +1,7 @@
-import mongoose, { Document, Model } from 'mongoose';
+import mongoose, { Document, Model, Types } from 'mongoose';
 
 const { Schema } = mongoose;
 interface IUser extends Document {
-    _id: string;
     username: string;
     hashedPassword: string;
     roles: string[];
@@ -32,5 +31,5 @@ const userSchema = new Schema<IUser>({
     }
 }, { timestamps: true });
 
-const UserModel: Model<IUser> = mongoose.model<IUser>('User', userSchema);
+const UserModel: Model<IUser> = mongoose.model<IUser>('user', userSchema);
 export { UserModel, IUser };

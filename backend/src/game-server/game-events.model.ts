@@ -1,6 +1,11 @@
+import { IGame, IPlayer } from '../models/game';
+
 enum HybridEventNameEnum { // rather hybrid, in and out
+    OPTIONS_CHANGED = 'OPTIONS_CHANGED',
     USER_JOINED = 'USER_JOINED', // only for visuals n shit
     USER_LEFT = 'USER_LEFT', // only for visuals n shit
+
+    USER_READY = 'USER_READY',
 
     USER_SET_BALANCE = 'USER_SET_BALANCE',
     USER_CALLED = 'USER_CALLED',
@@ -18,6 +23,7 @@ enum PrivateEventNameEnum {
 enum OutputEventNameEnum {
     GAME_ENDED = 'GAME_ENDED', // no additional data - o
     NEXT_PLAYER = 'NEXT_PLAYER',
+    NEW_PHASE = 'NEW_PHASE',
     ROUND_ENDED = 'ROUND_ENDED' // no data - all players have called or folded and revealed their cards, winners are known - o
 }
 
@@ -29,6 +35,18 @@ interface HybridEvent {
     name: HybridEventNameEnum;
     userId: string;
     amount?: number;
+    options?: IGame['options'];
+}
+
+export type SafePlayer = Omit<IPlayer, 'cards'>;
+
+export interface SafeGameState extends Omit<IGame, 'cardsInDeck' | 'players'> {
+    players: Map<string, SafePlayer>;
+}
+
+export interface NewStateResult {
+    events: GameEvent[];
+    newState: IGame;
 }
 
 export type GameEvent = Event | HybridEvent;

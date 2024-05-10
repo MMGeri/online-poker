@@ -4,10 +4,9 @@ import { RateLimiterMemory } from 'rate-limiter-flexible';
 import { io, passportSession, expressSessionMiddleware } from '../app';
 import { IUser } from '../models/user';
 import { IMessage } from '../models/message';
-import { dbService } from '../shared/services/db.service';
+import { dbModels, dbService } from '../shared/services/db.service';
 import { HybridEventNameEnum, HybridEvent } from './game-events.model';
 import { gems } from './game-event.manager';
-
 
 const rateLimiter = new RateLimiterMemory({
     points: 10,
@@ -36,9 +35,6 @@ io.on('connection', (socket: Socket) => {
         }
     });
     socket.on('new-message', (obj: { message: string; channelId: string }) => {
-        if (!userIsPartOfChannel(sid, `chat:${obj.channelId}`)) {
-            return;
-        }
         const messageObj: Partial<IMessage> & { senderName: string } = {
             channelId: obj.channelId,
             senderId: user._id,
@@ -49,7 +45,8 @@ io.on('connection', (socket: Socket) => {
     });
     socket.on('game-event', async (obj: { inputEvent: HybridEvent; gameId: string }) => {
         obj.inputEvent.userId = user._id;
-        if (!userIsPartOfChannel(sid, `game:${obj.gameId}`) || !isInputEvent(obj.inputEvent) || !userOwnsSocket(user._id, obj.inputEvent.userId)) {
+        if (!isInputEvent(obj.inputEvent) ||
+            !userOwnsSocket(user._id, obj.inputEvent.userId)) {
             return;
         }
         const gameEventManager = gems.getGameEventManager(obj.gameId);
@@ -108,18 +105,18 @@ async function sessionAuth(req: Request, res: Response, next: NextFunction) {
     }
 }
 
-function userIsPartOfChannel(sid: string, channelId: string): boolean {
-    const rooms = io.of('/').adapter.rooms;
-    const channelRoom = rooms.get(`channel:${channelId}`);
-    return channelRoom?.has(sid) || false;
-}
-
 async function canJoinChatChannel(key: string, channelId: string): Promise<boolean> {
-    const channel = await dbService.getChannelsByQuery({ _id: channelId });
-    return key === channel[0]?.key;
+    const chat = await dbService.getDocumentsByQuery(dbModels.Channel, { _id: channelId });
+    const canJoin =
+        chat[0].banList.indexOf(key) === -1 &&
+        (chat[0].whiteList.indexOf(key) !== -1);
+    return canJoin;
 }
 
 async function canJoinGameChannel(key: string, gameId: string): Promise<boolean> {
-    const game = await dbService.getGamesByQuery({ _id: gameId }); // TODO: whitelist and banlist
-    return key === game[0]?.options.key;
+    const game = await dbService.getDocumentsByQuery(dbModels.Game, { _id: gameId });
+    const canJoin =
+        game[0].options.banList.indexOf(game[0].ownerId) === -1 &&
+        (game[0].options.whiteList.indexOf(game[0].ownerId) !== -1);
+    return canJoin;
 }

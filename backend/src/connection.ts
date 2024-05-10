@@ -13,6 +13,12 @@ async function connect() {
     if (mongoose.connection.readyState === 0) {
         try {
             await mongoose.connect(connection.uri, connection.options);
+            const ObjectId = mongoose.Types.ObjectId;
+
+            ObjectId.prototype.valueOf = function () {
+                return this.toString();
+            };
+            console.log('Connected to MongoDB.');
             mongoose.connection.on('disconnected', () => {
                 console.error('Connection lost to MongoDB.');
             });

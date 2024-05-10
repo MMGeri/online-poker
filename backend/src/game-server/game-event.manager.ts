@@ -1,23 +1,10 @@
 import * as _ from 'lodash';
 import { ICard, IGame, IPlayer } from '../models/game';
 import { io } from '../app';
-import { dbService } from '../shared/services/db.service';
-import { GameEvent, HybridEvent, HybridEventNameEnum, OutputEventNameEnum, PrivateEventNameEnum } from './game-events.model';
+import { dbModels, dbService } from '../shared/services/db.service';
+import { GameEvent, HybridEvent, HybridEventNameEnum, NewStateResult, OutputEventNameEnum, PrivateEventNameEnum, SafeGameState } from './game-events.model';
+import { calculateValueOfHand, removeSensitiveData, allDoneCondition, calculateMoneyNeeded } from './utils';
 
-interface GameEvenManagers {
-    [key: string]: GameEventManager; // key is gameId
-}
-
-type SafePlayer = Omit<IPlayer, 'cards'>;
-
-interface SafeGameState extends Omit<IGame, 'cardsInDeck' | 'players'> {
-    players: Map<string, SafePlayer>;
-}
-
-interface NewStateResult {
-    events: GameEvent[];
-    newState: IGame;
-}
 
 const userActions = [
     HybridEventNameEnum.USER_CALLED,
@@ -25,6 +12,8 @@ const userActions = [
     HybridEventNameEnum.USER_CHECKED,
     HybridEventNameEnum.USER_RAISED
 ];
+
+export const phases = ['Getting-Ready', 'Pre-flop', 'Flop', 'Turn', 'River'] as const;
 
 class GameEventManager {
     private gameState: IGame;
@@ -37,7 +26,7 @@ class GameEventManager {
 
     public async deleteGame() {
         io.of('/').in(this.gameChannelIdentifier).emit('game-event', { name: OutputEventNameEnum.GAME_ENDED });
-        await dbService.updateGameById(this.gameState._id, { gameOver: true });
+        await dbService.updateDocumentById(dbModels.Game, this.gameState._id, { gameOver: true });
         this.gameState.gameOver = true;
         // disconnect sockets
         const namespace = io.of('/').in(this.gameChannelIdentifier);
@@ -48,22 +37,21 @@ class GameEventManager {
         });
     }
 
-    public async getNewGameState(event: HybridEvent): Promise<{ events: GameEvent[]; gameState: SafeGameState }> {
+    public async getNewGameState(event: HybridEvent): Promise<{ events: GameEvent[]; gameState: Partial<SafeGameState> }> {
         const result = await this.calculateNewGameState(event);
         this.gameState = _.merge(this.gameState, result.newState);
-        await dbService.updateGameById(this.gameState._id, this.gameState);
-        return { events: result.events, gameState: this.removeSensitiveData(this.gameState) };
+        if (result.events.length > 0) {
+            // const originalGameState = await dbService.getGamesByQuery({ _id: this.gameState._id });
+            // this.gameState.options = originalGameState[0].options;
+            await dbService.updateDocumentById(dbModels.Game, this.gameState._id, this.gameState);
+        }
+        return { events: result.events, gameState: removeSensitiveData(this.gameState) };
     }
 
     private async calculateNewGameState(event: HybridEvent): Promise<NewStateResult> {
         let result: NewStateResult = { events: [], newState: this.gameState };
         let eventResult: { event: GameEvent | null; newState: IGame };
-        // if user action then check if it is his turn, if not return with no event
         const currentPlayerTurn: string = Object.values(this.gameState.players).find((player) => player.positionAtTable === this.gameState.playerTurn)!.userId;
-        if (event.userId !== currentPlayerTurn) {
-            return result;
-        }
-
         if (event.amount) {
             event.amount = parseInt(event.amount.toString(), 10);
             if (isNaN(event.amount) || event.amount < 0) {
@@ -72,6 +60,12 @@ class GameEventManager {
         }
 
         switch (event.name) {
+            case HybridEventNameEnum.OPTIONS_CHANGED:
+                if (event.options && event.userId === this.gameState.ownerId) {
+                    result.newState.options = event.options;
+                    result.events.push(event);
+                }
+                break;
             case HybridEventNameEnum.USER_JOINED:
                 result.newState.players[event.userId].leftGame = false;
                 result.events.push(event);
@@ -80,26 +74,36 @@ class GameEventManager {
                 result.newState.players[event.userId].leftGame = true;
                 result.events.push(event);
                 break;
+            case HybridEventNameEnum.START_GAME:
+                if (!result.newState.gameStarted) {
+                    result.newState.gameStarted = true;
+                    result.events.push(event);
+                }
+                break;
             case HybridEventNameEnum.USER_CALLED:
             case HybridEventNameEnum.USER_FOLDED:
             case HybridEventNameEnum.USER_CHECKED:
             case HybridEventNameEnum.USER_RAISED:
-            case HybridEventNameEnum.START_GAME:
             case HybridEventNameEnum.USER_SET_BALANCE:
-                eventResult = await this.processEvent(result.newState, event);
+            case HybridEventNameEnum.USER_READY:
+                if (event.userId !== currentPlayerTurn) {
+                    break;
+                }
+                eventResult = await this.processUserEvent(result.newState, event);
                 if (eventResult.event) {
                     result.events.push(eventResult.event);
+                    result.newState = eventResult.newState;
+                    result = await this.calculateAdditionalEvents(result);
                 }
-                result.newState = eventResult.newState;
                 break;
             default:
                 return result;
         }
-        result = this.calculateAdditionalEvents(result); // many side effects
+
         return result;
     }
 
-    private async processEvent(newState: IGame, event: HybridEvent): Promise<{ event: GameEvent | null; newState: IGame }> {
+    private async processUserEvent(newState: IGame, event: HybridEvent): Promise<{ event: GameEvent | null; newState: IGame }> {
         switch (event.name) {
             case HybridEventNameEnum.USER_CALLED:
                 return this.handleCallEvent(newState, event);
@@ -109,22 +113,31 @@ class GameEventManager {
                 return this.handleCheckEvent(newState, event);
             case HybridEventNameEnum.USER_RAISED:
                 return this.handleRaiseEvent(newState, event);
-            case HybridEventNameEnum.START_GAME:
-                return this.handleStartEvent(newState, event);
             case HybridEventNameEnum.USER_SET_BALANCE:
                 return await this.handleSetBalanceEvent(newState, event);
+            case HybridEventNameEnum.USER_READY:
+                if (newState.phase === 'Getting-Ready') {
+                    newState.players[event.userId].ready = true;
+                    return { event, newState };
+                }
+                return { event: null, newState };
             default:
                 return { event: null, newState };
         }
     }
 
-    private calculateAdditionalEvents(result: NewStateResult) {
-        result = this.checkIfRoundEnded(result);
-        this.checkIfGameEnded(result);
-        if (result.events.find((event) => event.name in [OutputEventNameEnum.ROUND_ENDED, OutputEventNameEnum.GAME_ENDED])) {
-            return result;
-        }
-        if (_.some(result.events, (event: GameEvent) => event.name in userActions)) {
+    private async calculateAdditionalEvents(result: NewStateResult) {
+        result = await this.handlePhaseChange(result);
+        this.handleGameEnded(result);
+        const hasUserAction = _.some(result.events, (event: GameEvent) => event.name in userActions);
+        const nextRequired = !result.events.find(
+            (event) => event.name in [OutputEventNameEnum.ROUND_ENDED, OutputEventNameEnum.GAME_ENDED, OutputEventNameEnum.NEW_PHASE]
+        );
+        /* if there is a new phase, it will change the game state
+        thus no next player calculation is required
+        next player calculation is only required for betting actions
+        */
+        if (hasUserAction && nextRequired) {
             const nextUser = this.findNextPlayerWhoCanPlay(result);
             result.newState.playerTurn = nextUser.positionAtTable;
             result.events.push({ name: OutputEventNameEnum.NEXT_PLAYER, userId: nextUser.userId });
@@ -132,7 +145,72 @@ class GameEventManager {
         return result;
     }
 
-    private checkIfGameEnded(result: NewStateResult) {
+    private async handlePhaseChange(result: NewStateResult) {
+        const players = Object.values(result.newState.players);
+        const allDone = _.every(players, allDoneCondition(result));
+        const allReady = _.every(players, (player) => player.ready);
+        const blindsPlaced = _.find(players, (player) => player.positionAtTable === 0).bet > 0;
+
+        // Pre-flop phase // everyone gets 2 cards dealt
+        if (result.newState.phase === 'Getting-Ready' && allReady && blindsPlaced) {
+            result = this.nextPhase(result);
+            result = this.dealCards(result);
+            result.events.push({ name: OutputEventNameEnum.NEW_PHASE });
+            return result;
+        }
+        // Flop phase // 3 cards dealt
+        if (result.newState.phase === 'Pre-flop' && allDone) {
+            result = this.nextPhase(result);
+            result = this.placeCards(result, 3);
+            result.events.push({ name: OutputEventNameEnum.NEW_PHASE });
+            return result;
+        }
+        // Turn phase // fourth card dealt
+        if (result.newState.phase === 'Flop' && allDone) {
+            result = this.nextPhase(result);
+            result = this.placeCards(result, 1);
+            result.events.push({ name: OutputEventNameEnum.NEW_PHASE });
+            return result;
+        }
+        // River phase // fifth card dealt
+        if (result.newState.phase === 'Turn' && allDone) {
+            result = this.nextPhase(result);
+            result = this.placeCards(result, 1);
+            result.events.push({ name: OutputEventNameEnum.NEW_PHASE });
+            return result;
+        }
+        if (result.newState.phase === 'River' && allDone) {
+        // shuffle players
+            const randomSequence = _.shuffle(_.range(0, _.values(result.newState.players).length));
+            result.newState.players.forEach((value: IPlayer, key: string) => {
+                value.positionAtTable = randomSequence[value.positionAtTable];
+            });
+            result = await this.payoutRoundWinners(result);
+            result = this.newRound(result);
+            result.events.push({ name: OutputEventNameEnum.ROUND_ENDED });
+            return result;
+        }
+        return result;
+    }
+
+    private dealCards(result: NewStateResult) {
+        const cards = result.newState.cardsInDeck;
+        result.newState.players.forEach((player: IPlayer, key: string) => {
+            const twoCards = _.takeRight(cards, 2);
+            player.cards = twoCards;
+        });
+        return result;
+    }
+
+    private placeCards(result: NewStateResult, amount: number) {
+        const cards = result.newState.cardsInDeck;
+        const cardsOnTable = result.newState.cardsOnTable;
+        const newCards = _.takeRight(cards, amount);
+        result.newState.cardsOnTable = [...cardsOnTable, ...newCards];
+        return result;
+    }
+
+    private handleGameEnded(result: NewStateResult) {
         const playersLeft = _.every(result.newState.players, (player: IPlayer) => player.leftGame);
         if (playersLeft) {
             result.newState.gameOver = true;
@@ -140,29 +218,11 @@ class GameEventManager {
         }
     }
 
-    private checkIfRoundEnded(result: NewStateResult) {
-        const allDone = _.every(result.newState.players, (player: IPlayer) =>
-            player.called ||
-            player.folded ||
-            player.inGameBalance === 0 ||
-            player.raisedTimes >= result.newState.options.maxRaises);
-        if (allDone) {
-        // shuffle players
-            const randomSequence = _.shuffle(_.range(0, _.values(result.newState.players).length));
-            result.newState.players.forEach((value: IPlayer, key: string) => {
-                value.positionAtTable = randomSequence[value.positionAtTable];
-            });
-            result = this.payoutRoundWinners(result);
-            result = this.newRound(result);
-            result.events.push({ name: OutputEventNameEnum.ROUND_ENDED });
-        }
-        return result;
-    }
-    private payoutRoundWinners(result: NewStateResult) {
+    private async payoutRoundWinners(result: NewStateResult) {
         const players: IPlayer[] = Object.values(result.newState.players);
         const playersInGame = players.filter((player) => !player.folded && !player.leftGame);
         const playerHandValues = playersInGame.map(
-            (player) => ({ ...player, value: this.calculateValueOfHand(player.cards.concat(result.newState.cardsOnTable)) })
+            (player) => ({ ...player, value: calculateValueOfHand(player.cards.concat(result.newState.cardsOnTable)) })
         );
 
         const orderOfPlayers = _.sortBy(playerHandValues, (player: IPlayer & { value: number }) => player.value);
@@ -196,120 +256,43 @@ class GameEventManager {
                 winner.inGameBalance += result.newState.pot / winnersWithoutTap.length;
             }
         }
+        for (const player of players) {
+            const playerFromDb = await dbService.getDocumentsByQuery(dbModels.User, { _id: player.userId });
+            await dbService.updateDocumentById(dbModels.User, player.userId, { balance: player.inGameBalance + playerFromDb[0].balance });
+        }
+
         return result;
     }
 
-    // TODO: move to anuther file
-    private calculateValueOfHand(cards: ICard[]): number {
-        const valuesMap: { [key: string]: number } = {
-            '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6, '8': 7, '9': 8, '10': 9, 'J': 10, 'Q': 11, 'K': 12, 'A': 13
-        };
-        const isStraight = (cs: ICard[]) => {
-            const groupedBySign = _.groupBy(cs, 'sign');
-            const hasFiveSameSign = _.some(groupedBySign, (group) => group.length >= 5);
-            if (!hasFiveSameSign) {
-                return null;
-            }
-            const groupWithFive = _.find(groupedBySign, (group) => group.length >= 5);
-            if (!groupWithFive) {
-                return null;
-            }
-            const areConsecutive = _.every(groupWithFive, (card, index, array) => {
-                if (index === 0) {
-                    return true;
-                }
-                return valuesMap[card.value] - valuesMap[array[index - 1].value] === 1;
-            });
-            if (!areConsecutive) {
-                return null;
-            }
-            const highestCard = valuesMap[_.maxBy(groupWithFive, (card) => valuesMap[card.value])?.value!];
-            return highestCard;
-        };
-        const isFlush = (cs: ICard[]) => {
-            const groupedBySign = _.groupBy(cs, 'sign');
-            const fiveSameSignGroup = _.find(groupedBySign, (group) => group.length >= 5);
-            if (!fiveSameSignGroup) {
-                return null;
-            }
-            return valuesMap[_.maxBy(fiveSameSignGroup, (card) => valuesMap[card.value])!.value]!;
-        };
-        const isRoyalFlush = (cs: ICard[]) => {
-            const straight = isStraight(cs);
-            const flush = isFlush(cs);
-            const ace = cs.find((c) => c.value === 'A');
-            return straight && ace && flush;
-        };
-        const isStraightFlush = (cs: ICard[]) => {
-            const straight = isStraight(cs);
-            const flush = isFlush(cs);
-            return straight && flush;
-        };
-        const isFourOfAKind = (cs: ICard[]) => {
-            const groupedByValue = _.groupBy(cs, 'value');
-            const fourSameValue = _.filter(groupedByValue, (group) => group.length === 4);
-            return 4 * valuesMap[fourSameValue[0][0].value];
-        };
-        const isFullHouse = (cs: ICard[]) => {
-            const groupedByValue = _.groupBy(cs, 'value');
-            const threeSameValue = _.filter(groupedByValue, (group) => group.length === 3);
-            const twoSameValue = _.filter(groupedByValue, (group) => group.length === 2);
-            return 3 * valuesMap[threeSameValue[0][0].value] + 2 * valuesMap[twoSameValue[0][0].value];
-        };
-        const isThreeOfAKind = (cs: ICard[]) => {
-            const groupedByValue = _.groupBy(cs, 'value');
-            const hasThreeSameValue = _.some(groupedByValue, (group) => group.length === 3);
-            return hasThreeSameValue;
-        };
-        const isTwoPair = (cs: ICard[]) => {
-            const groupedByValue = _.groupBy(cs, 'value');
-            const hasTwoSameValue = _.filter(groupedByValue, (group) => group.length === 2).length >= 2;
-            return hasTwoSameValue;
-        };
-        const isOnePair = (cs: ICard[]) => {
-            const groupedByValue = _.groupBy(cs, 'value');
-            const hasTwoSameValue = _.some(groupedByValue, (group) => group.length === 2);
-            return hasTwoSameValue;
-        };
-
-        if (isRoyalFlush(cards)) {
-            return 245 + isStraight(cards)!;
-        }
-        if (isStraightFlush(cards)) {
-            return 308 + isStraight(cards)!;
-        }
-        if (isFourOfAKind(cards)) {
-            return 256 + isFourOfAKind(cards);
-        }
-        if (isFullHouse(cards)) {
-            return 193 + isFullHouse(cards);
-        }
-        if (isFlush(cards)) {
-            return 180 + isFlush(cards)!;
-        }
-        if (isStraight(cards)) {
-            return 167 + isStraight(cards)!;
-        }
-        if (isThreeOfAKind(cards)) {
-            const three = _.find(_.groupBy(cards, 'value'), (group) => group.length === 3)![0];
-            return 128 + valuesMap[three.value] * 3;
-        }
-        if (isTwoPair(cards)) {
-            const pairs = _.filter(_.groupBy(cards, 'value'), (group) => group.length === 2);
-            return 76 + valuesMap[pairs[0][0].value] * 2 + valuesMap[pairs[1][0].value] * 2;
-        }
-        if (isOnePair(cards)) {
-            const pair = _.find(_.groupBy(cards, 'value'), (group) => group.length === 2)![0];
-            return 76 + valuesMap[pair[0].value] * 2;
-        }
-        return _.sumBy(cards, (card) => valuesMap[card.value]);
+    private nextPhase(result: NewStateResult) {
+        const currentPhaseIndex = phases.indexOf(result.newState.phase);
+        result.newState.phase = phases[currentPhaseIndex + 1];
+        result.newState.playerTurn = 0;
+        result.newState.players.forEach((player) => {
+            player.called = false;
+            player.checked = false;
+            player.raisedTimes = 0;
+        });
+        return result;
     }
 
     private newRound(result: NewStateResult) {
+        const newDeck = (): ICard[] => {
+            const signs: ICard['sign'][] = ['hearts', 'diamonds', 'clubs', 'spades'];
+            const values: ICard['value'][] = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+            const deck: ICard[] = [];
+            signs.forEach((sign) => {
+                values.forEach((value) => {
+                    deck.push({ sign, value });
+                });
+            });
+            const shuffledDeck = _.shuffle(deck);
+            return shuffledDeck;
+        };
         result.newState.round++;
         result.newState.cardsOnTable = [];
-        result.newState.cardsInDeck = []; // TODO: implement deck
-        result.newState.phase = 'Blinds';
+        result.newState.cardsInDeck = newDeck();
+        result.newState.phase = 'Getting-Ready';
         result.newState.playerTurn = 0;
         result.newState.pot = 0;
         result.newState.players.forEach((player) => {
@@ -320,6 +303,7 @@ class GameEventManager {
             player.folded = false;
             player.raisedTimes = 0;
             player.bet = 0;
+            player.ready = false;
         });
         return result;
     }
@@ -333,23 +317,18 @@ class GameEventManager {
             const player = players[(playerTurn + i) % players.length];
             if (condtion(player)) {
                 nextPlayer = player;
+                break;
             }
         }
         return nextPlayer!;
     }
 
-    private removeSensitiveData(gameState: IGame): SafeGameState {
-        const { players } = gameState;
-        return {
-            ...gameState, players: Object.entries(players).reduce((acc, [key, player]) => {
-                acc[key] = { ...player, cards: undefined };
-                return acc;
-            }, {} as Map<string, Omit<IPlayer, 'cards'>>)
-        };
-    }
-
     private handleCallEvent(newState: IGame, event: HybridEvent) {
-        const moneyNeeded: number = _.maxBy(Object.values(newState.players), 'bet').bet - newState.players[event.userId].bet;
+        const isBlind = newState.players[event.userId].positionAtTable === 0;
+        if (!event.amount || !isBlind && newState.phase === 'Getting-Ready') {
+            return { event: null, newState };
+        }
+        const moneyNeeded = calculateMoneyNeeded(newState, event);
         const hasEnoughBalance = newState.players[event.userId].inGameBalance >= moneyNeeded;
         if (hasEnoughBalance) {
             newState.players[event.userId].inGameBalance -= moneyNeeded;
@@ -383,10 +362,11 @@ class GameEventManager {
     }
 
     private handleRaiseEvent(newState: IGame, event: HybridEvent) {
-        if (!event.amount) {
+        const isBlind = newState.players[event.userId].positionAtTable === 0;
+        if (!event.amount || !isBlind && newState.phase === 'Getting-Ready') {
             return { event: null, newState };
         }
-        const moneyNeeded = _.maxBy(Object.values(newState.players), 'bet').bet + event.amount - newState.players[event.userId].bet;
+        const moneyNeeded = calculateMoneyNeeded(newState, event);
         const hasEnoughBalance = newState.players[event.userId].inGameBalance >= moneyNeeded;
         const hasntRaisedTooManyTimes = newState.players[event.userId].raisedTimes < newState.options.maxRaises;
         if (hasEnoughBalance && hasntRaisedTooManyTimes) {
@@ -401,31 +381,25 @@ class GameEventManager {
         return { event: { name: PrivateEventNameEnum.INSUFFICIENT_BALANCE, userId: event.userId }, newState };
     }
 
-    private handleStartEvent(newState: IGame, event: HybridEvent) {
-        if (newState.gameStarted) {
+    private async handleSetBalanceEvent(newState: IGame, event: HybridEvent) {
+        if (!event.amount) {
             return { event: null, newState };
         }
-        newState.gameStarted = true;
-        return { event, newState };
-    }
-
-    private async handleSetBalanceEvent(newState: IGame, event: HybridEvent) {
-        if (event.amount) {
-            const playerFromDb = await dbService.getUsersByQuery({ _id: event.userId });
-            const hasEnoughFunds = playerFromDb[0].balance >= event.amount;
-            if (hasEnoughFunds) {
-                await dbService.updateUserById(event.userId, { balance: playerFromDb[0].balance - event.amount });
-                newState.players[event.userId].inGameBalance = event.amount;
-                return { event, newState };
-            }
+        const playerFromDb = await dbService.getDocumentsByQuery(dbModels.User, { _id: event.userId });
+        const hasEnoughFunds = playerFromDb[0].balance >= event.amount;
+        if (newState.phase === 'Getting-Ready' && hasEnoughFunds) {
+            await dbService.updateDocumentById(dbModels.User, event.userId, { balance: playerFromDb[0].balance - event.amount });
+            newState.players[event.userId].inGameBalance = event.amount;
+            return { event, newState };
         }
         return { event: null, newState };
     }
 }
-// and set all players money to +=ingamebalance
-// TODO: if user leaves game for good +=ingamebalance
-// TODO: check every loop if its ok IPlayer
-// TODO: check everys
+
+interface GameEvenManagers {
+    [key: string]: GameEventManager; // key is gameId
+}
+
 class GameEventManagerService {
     private gameEventManagers: GameEvenManagers = {};
 

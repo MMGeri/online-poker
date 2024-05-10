@@ -3,7 +3,7 @@ import { Response, Request, NextFunction } from 'express';
 import passport from 'passport';
 import { IUser } from '../../models/user';
 import { BaseError } from '../middleware/error-handler';
-import { dbService } from '../../shared/services/db.service';
+import { dbModels, dbService } from '../../shared/services/db.service';
 
 async function login(req: Request, res: Response) {
     passport.authenticate('local', (error: any, user: IUser) => {
@@ -23,13 +23,13 @@ async function login(req: Request, res: Response) {
 
 async function register(req: Request, res: Response, next: NextFunction) {
     const user = req.body;
-    const users = await dbService.getUsersByQuery({ username: user.username });
+    const users = await dbService.getDocumentsByQuery(dbModels.User, { username: user.username });
     if (users.length > 0) {
         res.status(400).send('Username is already taken');
     }
     const hashedPassword = createHash('sha256').update(req.body.password).digest('hex');
     try {
-        await dbService.createUser({ username: user.username, hashedPassword });
+        await dbService.createDocument(dbModels.User, { username: user.username, hashedPassword });
     } catch (error: any) {
         next(new BaseError('RegisterError', 500, error.message, 'backend register controller'));
     }
