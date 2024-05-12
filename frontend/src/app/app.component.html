@@ -1,2 +1,14 @@
-<app-chat></app-chat>
-<app-login></app-login>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=block" rel="stylesheet">
+@if (showHead) {
+<app-header (openChatList)="openChatList($event)"></app-header>
+}
+<mat-sidenav-container class="example-container" [hasBackdrop]="false" autosize>
+    <mat-sidenav *ngIf="user" position="end" [opened]="chatListOpen" mode="side">
+        <app-chat-list (chatSelected)="chatWindows.addChat($event)"></app-chat-list>
+    </mat-sidenav>
+    <mat-sidenav-content>
+        <router-outlet></router-outlet>
+    </mat-sidenav-content>
+</mat-sidenav-container>
+
+<app-chats-container #chatWindows></app-chats-container>

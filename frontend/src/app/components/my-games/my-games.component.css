@@ -1,0 +1,26 @@
+#my-games-container {
+    display: flex;
+    justify-content: center;
+    margin: 8px;
+    height: 100vh;
+}
+
+mat-card {
+    width: 80%;
+    padding: 20px;
+}
+
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    border: 1px solid #ddd;
+}
+
+.buttons a {
+    background-color: #3498db;
+    cursor: pointer;
+    width: 100%;
+    color: white;
+    padding: 10px;
+}

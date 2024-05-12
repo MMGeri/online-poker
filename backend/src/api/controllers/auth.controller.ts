@@ -13,7 +13,8 @@ async function login(req: Request, res: Response) {
         }
         req.login(user, (err: string | null) => {
             if (err) {
-                throw new BaseError('LoginError', 500, err, 'backend login controller');
+                res.status(401).send('Unauthorized');
+                return;
             }
             user._id = user._id.toString();
             res.status(200).json(user);
@@ -49,5 +50,12 @@ async function logout(req: Request, res: Response) {
 module.exports = {
     login,
     logout,
-    register
+    register,
+    checkAuth: (req: Request, res: Response) => {
+        if (req.isAuthenticated()) {
+            res.status(200).send(true);
+        } else {
+            res.status(401).send('Unauthorized');
+        }
+    }
 };

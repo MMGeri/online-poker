@@ -6,12 +6,15 @@ import { decodeJWT } from '../../shared/utils/jwt-handler';
 
 // channel id and or page
 async function getChats(req: Request, res: Response) {
-    const query = req.query.chatId ? { _id: new ObjectId(req.query.chatId as string) } : {};
+    const userId = (req.user as IUser)._id;
+    let query: any = req.query.chatId ? { _id: new ObjectId(req.query.chatId as string) } : {};
+    query = { ...query, $or: [{ ownerId: userId }, { whiteList: userId }] };
+
     const page: number | undefined = parseInt(req.query.page as string, 10) ?? undefined;
-    const chats = await dbService.getDocumentsByQuery(dbModels.Channel, query, page);
-    if (chats.length === 0) {
-        res.status(404).send('Chat not found');
-        return;
+    const chats: any = await dbService.getDocumentsByQuery(dbModels.Channel, query, page);
+    for (const chat of chats) {
+        const usersOfChat = await dbService.getDocumentsByQuery(dbModels.User, { _id: { $in: chat.whiteList } });
+        chat.whiteList = usersOfChat.map((user: Partial<IUser>) => ({ ...user, hashedPassword: undefined }));
     }
     res.status(200).send(chats);
 }
@@ -30,6 +33,7 @@ async function deleteChat(req: Request, res: Response) {
         res.status(404).send('Chat not found');
         return;
     }
+    await dbService.deleteDocumentsByQuery(dbModels.Message, { channelId: req.query.chatId as string });
     res.status(204).send();
 }
 
@@ -80,12 +84,8 @@ async function leaveChat(req: Request, res: Response) {
 
 async function getMessages(req: Request, res: Response) {
     const channelId = req.query.channelId as string;
-    const page: number | undefined = parseInt(req.query.page as string, 10) ?? undefined;
+    const page: number | undefined = parseInt(req.query.page as string, 10) ?? 0;
     const messages = await dbService.getDocumentsByQuery(dbModels.Message, { channelId }, page);
-    if (messages.length === 0) {
-        res.status(404).send('Messages not found');
-        return;
-    }
     res.status(200).send(messages);
 }
 

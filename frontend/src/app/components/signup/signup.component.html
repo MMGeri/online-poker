@@ -1,0 +1,28 @@
+<div class="signup-container">
+    <form [formGroup]="signUpForm" (ngSubmit)="onSubmit()" class="signup-form">
+        <h1>Register an account!</h1>
+        <mat-form-field>
+            <mat-label for="username">username: </mat-label>
+            <input matInput type="text" formControlName="username" />
+        </mat-form-field>
+        <mat-form-field>
+            <mat-label for="password">password: </mat-label>
+            <input matInput type="password" formControlName="password" />
+        </mat-form-field>
+        <mat-form-field>
+            <mat-label for="confirmPassword">confirm password: </mat-label>
+            <input matInput type="password" formControlName="confirmPassword" />
+        </mat-form-field>
+        <div>
+            <span class="buttons">
+                <button mat-raised-button color="primary" type="submit">Register</button>
+            </span><span class="buttons">
+                <button mat-raised-button color="primary" (click)="goToLogin()">Login</button>
+            </span>
+        </div>
+        <div *ngIf="errorMessage">
+            <p style="color: red">{{errorMessage}}</p>
+        </div>
+    </form>
+
+</div>

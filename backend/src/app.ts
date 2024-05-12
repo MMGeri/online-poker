@@ -84,7 +84,7 @@ app.use(OpenApiValidator.middleware({
         handlers: {
             cookieAuth: (req, scopes, schema) => req.isAuthenticated(),
             cookieAdminAuth: (req, scopes, schema) => req.isAuthenticated() && (req.user as IUser).roles.includes('admin'),
-            userSpecificCookieAuth: (req, scopes, schema) => req.isAuthenticated() && req.query.userId === ((req.user as IUser)._id),
+            userSpecificCookieAuth: (req, scopes, schema) => req.isAuthenticated() && req.query.userId === ((req.user as IUser)._id.toString()),
             chatOwnerAuth: async (req, scopes, schema) => {
                 if (!req.isAuthenticated()) {
                     return false;
@@ -95,7 +95,7 @@ app.use(OpenApiValidator.middleware({
                 if (!chat) {
                     return false;
                 }
-                return chat.ownerId === user._id;
+                return chat.ownerId === user._id.toString();
             },
             chatMemberAuth: async (req, scopes, schema) => {
                 if (!req.isAuthenticated()) {
@@ -107,7 +107,7 @@ app.use(OpenApiValidator.middleware({
                 if (!chat) {
                     return false;
                 }
-                return chat.whiteList.includes(user._id);
+                return chat.whiteList.includes(user._id.toString());
             },
             gameOwnerAuth: async (req, scopes, schema) => {
                 if (!req.isAuthenticated()) {
@@ -119,7 +119,7 @@ app.use(OpenApiValidator.middleware({
                 if (!game) {
                     return false;
                 }
-                return game.ownerId === user._id;
+                return game.ownerId === user._id.toString();
             },
             gamePlayerAuth: async (req, scopes, schema) => {
                 const user = req.user as IUser;
@@ -128,11 +128,12 @@ app.use(OpenApiValidator.middleware({
                 if (!game) {
                     return false;
                 }
-                return req.isAuthenticated() && game.options.whiteList.includes(user._id);
+                return req.isAuthenticated() && game.options.whiteList.includes(user._id.toString());
             }
         }
     }
 }));
+
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     errorHandler.handleError(err, req, res, next);

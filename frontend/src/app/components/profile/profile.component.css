@@ -1,0 +1,10 @@
+mat-card {
+    width: 80%;
+}
+
+#profile-container {
+    display: flex;
+    justify-content: center;
+    margin: 8px;
+    height: 100vh;
+}

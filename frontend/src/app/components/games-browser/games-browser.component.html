@@ -1,0 +1,26 @@
+<!-- list of mat cards displaying user names, pot, and round -->
+<div id="games-browser-container">
+    <div id="search-bar">
+        <form>
+            <input matInput placeholder="Search for a game" [(ngModel)]="searchTerm" name="searchTerm"
+                (ngModelChange)="searchGames()" />
+        </form>
+    </div>
+    <div id="games-list">
+        <mat-card *ngFor="let game of games" (click)="joinGame(game._id)">
+            <mat-card-header>
+                <mat-card-title>name: {{game.name}}</mat-card-title>
+                <mat-card-subtitle>round: {{game.round}}</mat-card-subtitle>
+                <mat-card-subtitle>players: {{ players(game) }}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+                <p>Host: {{game.ownerId}}</p>
+                <p>Pot: {{game.pot}}</p>
+            </mat-card-content>
+            <mat-card-actions>
+                <button mat-button>JOIN</button>
+                <button mat-button>SPECTATE</button>
+            </mat-card-actions>
+        </mat-card>
+    </div>
+</div>

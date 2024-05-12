@@ -49,7 +49,6 @@ export const dbService = {
         options?: MongooseQueryOptions
     ): Promise<InterfaceType<ModelType<T>>[]> {
         const Model = getModel(model);
-        console.log(Model);
         // @ts-expect-error - it's fine
         let queryBuilder = Model.find(query, projection, options);
         if (page !== undefined) {
@@ -90,5 +89,13 @@ export const dbService = {
     ): Promise<InterfaceType<ModelType<T>>[]> {
         // @ts-expect-error - it's fine
         return getModel(model).deleteMany({ _id: { $in: _ids } }).exec();
+    },
+
+    deleteDocumentsByQuery<T extends dbModels>(
+        model: T,
+        query: FilterQuery<ModelType<T>>
+    ): Promise<InterfaceType<ModelType<T>>[]> {
+        // @ts-expect-error - it's fine
+        return getModel(model).deleteMany(query).exec();
     }
 };

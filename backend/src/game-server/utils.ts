@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { ICard, IGame, IPlayer } from '../models/game';
+import { IUser } from '../models';
 import { HybridEvent, NewStateResult, SafeGameState, SafePlayer } from './game-events.model';
 
 function removeSensitiveData(gameState: IGame): Partial<SafeGameState> {
@@ -139,7 +140,17 @@ function calculateMoneyNeeded(newState: IGame, event: HybridEvent) {
     return _.maxBy(Object.values(newState.players), 'bet').bet - newState.players[event.userId].bet + moneyForBlinds;
 }
 
+function isBSONType(id: string) {
+    return /^[a-f\d]{24}$/i.test(id);
+}
+
+function secureUser(user: IUser) {
+    return _.omit(user, ['hashedPassword', 'balance', 'friends', 'createdAt']);
+}
+
 export {
+    secureUser,
+    isBSONType,
     removeSensitiveData,
     allDoneCondition,
     calculateValueOfHand,

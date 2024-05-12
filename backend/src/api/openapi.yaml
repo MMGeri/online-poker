@@ -102,11 +102,76 @@ paths:
                 $ref: "#/components/schemas/BaseError"
       security:
        - cookieAuth: []
+  /checkAuth:
+    get:
+      summary: Check if user is authenticated
+      operationId: checkAuth
+      x-eov-operation-handler: api/controllers/auth.controller
+      tags:
+        - Auth
+      responses:
+        '200':
+          description: User is authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Unauthorized, user not logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - cookieAuth: []
 # Users 
+  /user/{userId}:
+    get:
+      summary: Get user information by id
+      operationId: getUserById
+      x-eov-operation-handler: api/controllers/user.controller
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+          description: The id of the user to retrieve
+      responses:
+        '200':
+          description: User information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Unauthorized, user not logged in
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - cookieAuth: []
   /users:
     get:
       summary: Get user information
-      operationId: getUser
+      operationId: getUsers
       x-eov-operation-handler: api/controllers/user.controller
       tags:
         - Users
@@ -200,7 +265,160 @@ paths:
       security:
         - userSpecificCookieAuth: []
         - cookieAdminAuth: []
+  /friends:
+    get:
+      summary: Get friends of user
+      operationId: getFriends
+      x-eov-operation-handler: api/controllers/user.controller
+      tags:
+        - Users
+      responses:
+        '200':
+          description: Friends retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    username:
+                      type: string
+                    roles:
+                      type: array
+                      items:
+                        type: string
+                    balance:
+                      type: number
+                    createdAt:
+                      type: string
+                      format: date-time
+                    updatedAt:
+                      type: string
+                      format: date-time
+        '401':
+          description: Unauthorized, user not logged in
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - cookieAuth: []
+    post:
+      summary: Add friend to user
+      operationId: addFriend
+      x-eov-operation-handler: api/controllers/user.controller
+      tags:
+        - Users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                friendId:
+                  type: string
+              required:
+                - friendId
+      responses:
+        '200':
+          description: Friend added successfully
+        '401':
+          description: Unauthorized, user not logged in
+        '404':
+          description: User or friend not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - cookieAuth: []
+    delete:
+      summary: Remove friend from user
+      operationId: removeFriend
+      x-eov-operation-handler: api/controllers/user.controller
+      tags:
+        - Users
+      parameters:
+        - in: query
+          name: friendId
+          schema:
+            type: string
+          required: true
+          description: The id of the user to remove as friend
+      responses:
+        '200':
+          description: Friend removed successfully
+        '401':
+          description: Unauthorized, user not logged in
+        '404':
+          description: User or friend not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - cookieAuth: []
 # Game
+  /games:
+    get:
+      summary: Get all games by query that user has access to
+      operationId: getGames
+      x-eov-operation-handler: api/controllers/game.controller
+      tags:
+        - Game
+      parameters:
+        - in: query
+          name: myGames
+          schema:
+            type: boolean
+          required: false
+          description: If true, only games where the user is a player will be returned
+        - in: query
+          name: name
+          schema:
+            type: string
+            nullable: true
+          allowEmptyValue: true
+          required: false
+          description: The name of the game
+        - in: query
+          name: page
+          schema:
+            type: integer
+          required: false
+          description: The page number to retrieve
+      responses:
+        '200':
+          description: Games retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GamesResponse'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
   /game:
     delete:
       summary: Delete game
@@ -285,9 +503,10 @@ paths:
                 $ref: "#/components/schemas/BaseError"
       security:
         - gameOwnerAuth: []
+        - cookieAdminAuth: []
     get:
-      summary: Get all games by query that user has access to
-      operationId: getGames
+      summary: Get game by id
+      operationId: getGameById
       x-eov-operation-handler: api/controllers/game.controller
       tags:
         - Game
@@ -296,23 +515,21 @@ paths:
           name: gameId
           schema:
             type: string
-          required: false
-          description: The id of the game
-        - in: query
-          name: page
-          schema:
-            type: integer
-          required: false
-          description: The page number to retrieve
+          required: true
+          description: The id of the game to retrieve
       responses:
         '200':
-          description: Games retrieved successfully
+          description: Game retrieved successfully
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/GamesResponse'
+                $ref: '#/components/schemas/GameResponse'
+        '404':
+          description: Game not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
         default:
           description: Unexpected error
           content:
@@ -320,7 +537,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/BaseError"
       security:
-        - cookieAuth: []
+        - gameOwnerAuth: []
         - cookieAdminAuth: []
     post:
       summary: Create a new game
@@ -338,16 +555,20 @@ paths:
                 options:
                   type: object
                   properties:
-                    key:
-                      type: string
                     whiteList:
                       type: array
                       items:
                         type: string
-                    banList:
-                      type: array
-                      items:
-                        type: string
+                      description: The ids of the users who can join the game or usernames
+                    maxPlayers:
+                      type: number
+                      description: The maximum number of players in the game
+                    isPublic:
+                      type: boolean
+                      description: If true, anyone can join the game
+                    maxRaises:
+                      type: number
+                      description: The maximum number of raises in a round
               required:
                 - options
       responses:
@@ -421,8 +642,14 @@ paths:
           name: token
           schema:
             type: string
-          required: true
+          required: false
           description: The magic token to join the game with
+        - in: query
+          name: gameId
+          schema:
+            type: string
+          required: false
+          description: The id of the game to join
       responses:
         '200':
           description: Game joined successfully
@@ -472,57 +699,7 @@ paths:
       security:
         - gamePlayerAuth: []
 # Chat
-  /chat:
-    post:
-      summary: Create a new chat channel
-      operationId: createChat
-      x-eov-operation-handler: api/controllers/chat.controller
-      tags:
-        - Chat
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                options:
-                  type: object
-                  properties:
-                    key:
-                      type: string
-                    whiteList:
-                      type: array
-                      items:
-                        type: string
-                    banList:
-                      type: array
-                      items:
-                        type: string
-              required:
-                - options
-      responses:
-        '200':
-          description: Chat channel created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ChatResponse'
-        '400':
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BaseError'
-        default:
-          description: Unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/BaseError"
-      security:
-        - cookieAuth: []
-        - cookieAdminAuth: []
+  /chats:
     get:
       summary: Get all chat channels the user has access to
       operationId: getChats
@@ -530,12 +707,6 @@ paths:
       tags:
         - Chat
       parameters:
-        - in: query
-          name: channelId
-          schema:
-            type: string
-          required: false
-          description: The id of the chat channel to retrieve
         - in: query
           name: page
           schema:
@@ -556,39 +727,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/BaseError"
       security:
-        - userSpecificCookieAuth: []
+        - cookieAuth: []
         - cookieAdminAuth: []
-    delete:
-      summary: Delete chat channel
-      operationId: deleteChat
-      x-eov-operation-handler: api/controllers/chat.controller
-      tags:
-        - Chat
-      parameters:
-        - in: query
-          name: chatId
-          schema:
-            type: string
-          required: true
-          description: The id of the chat channel to delete
-      responses:
-        '200':
-          description: Chat channel deleted successfully
-        '404':
-          description: Chat channel not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BaseError'
-        default:
-          description: Unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/BaseError"
-      security:
-        - chatOwnerAuth: []
-        - cookieAdminAuth: []
+  /chat:
     put:
       summary: Update chat channel
       operationId: updateChat
@@ -646,6 +787,86 @@ paths:
       security:
         - chatOwnerAuth: []
         - cookieAdminAuth: []
+    delete:
+      summary: Delete chat channel
+      operationId: deleteChat
+      x-eov-operation-handler: api/controllers/chat.controller
+      tags:
+        - Chat
+      parameters:
+        - in: query
+          name: chatId
+          schema:
+            type: string
+          required: true
+          description: The id of the chat channel to delete
+      responses:
+        '200':
+          description: Chat channel deleted successfully
+        '404':
+          description: Chat channel not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - chatOwnerAuth: []
+        - cookieAdminAuth: []
+    post:
+      summary: Create a new chat channel
+      operationId: createChat
+      x-eov-operation-handler: api/controllers/chat.controller
+      tags:
+        - Chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                options:
+                  type: object
+                  properties:
+                    key:
+                      type: string
+                    whiteList:
+                      type: array
+                      items:
+                        type: string
+                    banList:
+                      type: array
+                      items:
+                        type: string
+              required:
+                - options
+      responses:
+        '200':
+          description: Chat channel created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseError'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseError"
+      security:
+        - cookieAuth: []
   /chat/message:
     get:
       summary: Get all messages of chat channel
@@ -999,3 +1220,5 @@ components:
 # TODO: mindehol jo response
 # TODO: error messagek ahol lehet
 # TODO: example es description
+# TODO: plural or not plural, also generic all endpoint or single endpoint?
+# FIXME: change query to path param where needed

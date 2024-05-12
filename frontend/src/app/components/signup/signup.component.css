@@ -1,0 +1,43 @@
+.signup-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.signup-form {
+    display: flex;
+    flex-direction: column;
+    width: 80%;
+    max-width: 400px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 20px;
+    gap: 10px;
+}
+
+
+.signup-form .buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.signup-form button {
+    cursor: pointer;
+    width: 100%;
+    color: white;
+    padding: 10px;
+}
+
+mat-form-field {
+    display: block;
+}
+
+.buttons {
+    margin: 10px;
+}
+
+.buttons button {
+    background-color: #3498db;
+}

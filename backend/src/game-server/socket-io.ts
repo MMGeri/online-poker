@@ -24,7 +24,7 @@ io.on('connection', (socket: Socket) => {
     socket.use(applyRateLimiting(socket, user));
 
     socket.on('join-chat-channel', async (obj: { key: string; channelId: string }) => {
-        if (await canJoinChatChannel(obj.key, obj.channelId)) {
+        if (await canJoinChatChannel(user._id, obj.channelId)) {
             socket.join(`chat:${obj.channelId}`);
         }
     });
@@ -49,7 +49,7 @@ io.on('connection', (socket: Socket) => {
             !userOwnsSocket(user._id, obj.inputEvent.userId)) {
             return;
         }
-        const gameEventManager = gems.getGameEventManager(obj.gameId);
+        const gameEventManager = gems.gameEventManagers[obj.gameId];
         if (!gameEventManager) {
             return;
         }
@@ -73,7 +73,6 @@ function userOwnsSocket(userId: string, socketUserId: string): boolean {
 
 function applyRateLimiting(socket: Socket, user: IUser) {
     return (packet, next) => {
-        console.log(user._id);
         rateLimiter.consume(user._id)
             .then(() => {
                 next();
@@ -105,18 +104,17 @@ async function sessionAuth(req: Request, res: Response, next: NextFunction) {
     }
 }
 
-async function canJoinChatChannel(key: string, channelId: string): Promise<boolean> {
-    const chat = await dbService.getDocumentsByQuery(dbModels.Channel, { _id: channelId });
-    const canJoin =
-        chat[0].banList.indexOf(key) === -1 &&
-        (chat[0].whiteList.indexOf(key) !== -1);
+async function canJoinChatChannel(userId: string, channelId: string): Promise<boolean> {
+    const chat = await dbService.getDocumentById(dbModels.Channel, channelId);
+    if (!chat) {
+        return false;
+    }
+    const canJoin = chat.whiteList.includes(userId);
     return canJoin;
 }
 
 async function canJoinGameChannel(key: string, gameId: string): Promise<boolean> {
     const game = await dbService.getDocumentsByQuery(dbModels.Game, { _id: gameId });
-    const canJoin =
-        game[0].options.banList.indexOf(game[0].ownerId) === -1 &&
-        (game[0].options.whiteList.indexOf(game[0].ownerId) !== -1);
+    const canJoin = (game[0].options.whiteList.indexOf(game[0].ownerId) !== -1);
     return canJoin;
 }

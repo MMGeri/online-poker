@@ -8,6 +8,7 @@ interface IUser extends Document {
     balance: number;
     createdAt: Date;
     updatedAt: Date;
+    friends: string[];
 }
 
 const userSchema = new Schema<IUser>({
@@ -28,8 +29,12 @@ const userSchema = new Schema<IUser>({
     balance: {
         type: Number,
         default: 0
+    },
+    friends: {
+        type: [String],
+        ref: 'User'
     }
 }, { timestamps: true });
 
-const UserModel: Model<IUser> = mongoose.model<IUser>('user', userSchema);
+const UserModel: Model<IUser> = mongoose.model<IUser>('User', userSchema);
 export { UserModel, IUser };

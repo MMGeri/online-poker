@@ -1,0 +1,6 @@
+#chat-container {
+    position: fixed;
+    top: 50%;
+    left: 0px;
+    transform: translateY(-100%);
+}

@@ -1,0 +1,9 @@
+
+mat-card:hover {
+    cursor: pointer;
+}
+
+#chat-list {
+    display: flex;
+    flex-direction: column;
+}

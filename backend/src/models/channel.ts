@@ -5,8 +5,6 @@ const { Schema } = mongoose;
 interface IChannel extends Document {
     ownerId?: string;
     whiteList: string[];
-    banList: string[];
-    key: string;
 }
 
 const channelSchema = new Schema<IChannel>({
@@ -18,12 +16,8 @@ const channelSchema = new Schema<IChannel>({
     whiteList: [{
         type: String,
         ref: 'User'
-    }],
-    banList: [{
-        type: String,
-        ref: 'User'
     }]
 }, { timestamps: true });
 
-const ChannelModel = mongoose.model<IChannel>('channel', channelSchema);
+const ChannelModel = mongoose.model<IChannel>('Channel', channelSchema);
 export { ChannelModel, IChannel };

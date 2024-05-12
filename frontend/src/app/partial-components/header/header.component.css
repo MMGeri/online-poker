@@ -1,0 +1,58 @@
+.header {
+    background-color: #3498db;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav-icon {
+    color: #fff;
+    padding: 0px 10px 0px 10px;
+}
+
+.center-content {
+    display: inline-flex;
+    align-items: center;
+}
+
+mat-divider {
+    width: 100%;
+}
+
+#money-icon {
+    padding-left: 20px;
+}
+
+#balance {
+    font-size: large;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+}
+
+.username {
+    padding: 0px 10px 0px 20px;
+}
+
+.left {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.right {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.chat:hover {
+    cursor: pointer;
+}

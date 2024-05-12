@@ -1,0 +1,30 @@
+<div id="chat-list-container">
+
+    <h1>Chats</h1>
+    <mat-card class="cards" *ngFor="let chat of chats" class="chat-card" (click)="onSelectChat(chat._id)">
+        <mat-card-header>
+            <mat-card-title>users: {{chat.whiteList}}</mat-card-title>
+        </mat-card-header>
+        <!-- <mat-card-content>
+        <p>{{chat.lastMessage}}</p> TODO:
+    </mat-card-content> -->
+    </mat-card>
+    <mat-divider></mat-divider>
+    <h1>Friends</h1>
+    <mat-card class="cards" *ngFor="let friend of friends" class="chat-card" (click)="onSelectFriend(friend._id)">
+        <!-- TODO: IMAGE -->
+        <mat-card-header>
+            <mat-card-title>{{friend.username}} | $:{{friend.balance}}</mat-card-title>
+        </mat-card-header>
+        <button mat-button (click)="removeFriend(friend._id)" color="primary">Remove</button>
+    </mat-card>
+
+    <mat-divider></mat-divider>
+    <h2>Add User</h2>
+    <input matInput [(ngModel)]="newUser" type="text" (change)="searchUser()">
+    <mat-card *ngFor="let user of searchedUsers" class="chat-card" (click)="onAddUser(user._id)">
+        <mat-card-header>
+            <mat-card-title>{{user.username}}</mat-card-title>
+        </mat-card-header>
+    </mat-card>
+</div>

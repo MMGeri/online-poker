@@ -24,6 +24,7 @@ interface IPlayer {
 
 interface IGame extends Document {
     ownerId: string;
+    name: string;
     chatChannelId: string;
     pot: number;
     players: Map<string, IPlayer>;
@@ -35,11 +36,10 @@ interface IGame extends Document {
     gameStarted: boolean;
     gameOver: boolean;
     options: {
-        key?: string;
         whiteList: string[];
-        banList: string[];
         maxPlayers: number;
         maxRaises: number;
+        isPublic: boolean;
     };
 }
 
@@ -48,6 +48,10 @@ const gameSchema = new Schema<IGame>({
         type: String,
         ref: 'User',
         required: true
+    },
+    name: {
+        type: String,
+        default: 'Poker Game'
     },
     chatChannelId: {
         type: String,
@@ -153,7 +157,6 @@ const gameSchema = new Schema<IGame>({
         default: false
     },
     options: {
-        key: String,
         whiteList: {
             type: [{
                 type: String,
@@ -161,16 +164,17 @@ const gameSchema = new Schema<IGame>({
             }],
             default: []
         },
-        banList: {
-            type: [{
-                type: String,
-                ref: 'User'
-            }],
-            default: []
+        maxPlayers: {
+            type: Number,
+            default: 6
         },
         maxRaises: {
             type: Number,
             default: 4
+        },
+        isPublic: {
+            type: Boolean,
+            default: true
         }
     }
 }, { timestamps: true }); // Automatically adds createdAt and updatedAt

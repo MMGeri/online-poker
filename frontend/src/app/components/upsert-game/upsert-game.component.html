@@ -1,0 +1,58 @@
+<!-- this.gameForm = this.formBuilder.group({
+    name: [game.name, Validators.required],
+    options: this.formBuilder.group({
+        whiteList: [game.options.whiteList],
+        maxPlayers: [game.options.maxPlayers, [Validators.required]],
+        maxRaises: [game.options.maxRaises, [Validators.required]],
+        isPublic: [game.options.isPublic, [Validators.required]]
+    })
+}); -->
+
+<div class="upsert-game-container">
+    <mat-card id="card">
+        <form [formGroup]="gameForm" class="game-form" (ngSubmit)="game ? update() : create()">
+            <h1>{{game ? "Update Game:" + game!.name : "Create Game"}}</h1>
+            <mat-divider></mat-divider>
+            <mat-form-field>
+                <mat-label for="name">Name</mat-label>
+                <input matInput type="text" formControlName="name" />
+            </mat-form-field>
+            <mat-divider></mat-divider>
+            <h2>Options</h2>
+            <div formGroupName="options">
+                <mat-label for="whiteList">White List</mat-label>
+                <mat-list>
+                    <mat-list-item *ngFor="let item of whiteList.controls; let i = index" class="whiteListItem">
+                        <mat-form-field>
+                            <input matInput [formControl]="item" />
+                        </mat-form-field>
+                        <button type="button" mat-icon-button (click)="removeFromWhiteList(i)">
+                            <mat-icon>delete</mat-icon>
+                        </button>
+                    </mat-list-item>
+                </mat-list>
+                <mat-form-field>
+                    <mat-label for="newItem">Add to White List</mat-label>
+                    <textarea matInput type="text" #newItem></textarea>
+                </mat-form-field>
+                <button type="button" mat-raised-button color="primary"
+                    (click)="addToWhiteList(newItem.value)">Add</button>
+                <mat-form-field>
+                    <mat-label for="maxPlayers">Max Players</mat-label>
+                    <input matInput type="number" formControlName="maxPlayers" />
+                </mat-form-field>
+                <mat-form-field>
+                    <mat-label for="maxRaises">Max Raises</mat-label>
+                    <input matInput type="number" formControlName="maxRaises" />
+                </mat-form-field>
+                <mat-label for="isPublic">Public</mat-label>
+                <mat-checkbox formControlName="isPublic"></mat-checkbox>
+            </div>
+            <mat-divider></mat-divider>
+            <div class="buttons">
+                <button mat-raised-button color="primary" type="submit">{{gameId ? "Update" : "Create"}}</button>
+            </div>
+            <p style="color: red">{{errorMessage}}</p>
+        </form>
+    </mat-card>
+</div>

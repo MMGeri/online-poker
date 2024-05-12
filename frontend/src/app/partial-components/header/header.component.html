@@ -1,0 +1,30 @@
+<header class="header">
+    <div class="left">
+        <a routerLink="/home" class="nav-icon">
+            <!-- <img src="assets/house-icon.svg" alt="Home" class="icon" /> -->
+            <mat-icon matTooltip="Home">home</mat-icon>
+        </a>
+    </div>
+    <div class="right">
+        <a *ngIf="!user" routerLink="/login" class="nav-icon">
+            <mat-icon matTooltip="Login/Signup">login</mat-icon>
+        </a>
+
+        <a *ngIf="user" routerLink="/profile" class="nav-icon">
+            <mat-icon matTooltip="Profile">person</mat-icon>
+        </a>
+        <a *ngIf="user" (click)="onToggleChatList()" class="nav-icon chat">
+            <mat-icon matTooltip="Chats">chat</mat-icon>
+        </a>
+        <a *ngIf="user" routerLink="/my-games" class="nav-icon">
+            <mat-icon matTooltip="My Games">games</mat-icon>
+        </a>
+        <mat-divider [vertical]="true"></mat-divider>
+        <span *ngIf="user" class="center-content"><mat-icon id="money-icon">money</mat-icon><span
+                id="balance">:{{user.balance}}</span></span>
+        <span *ngIf="user" class="username">{{user.username}}</span>
+        <a routerLink="/login" (click)="logout()" *ngIf="user" class="nav-icon">
+            <mat-icon matTooltip="Logout">logout</mat-icon>
+        </a>
+    </div>
+</header>

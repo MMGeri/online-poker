@@ -1,8 +1,8 @@
-export interface Message {
-    _id?: string;
+export interface IMessage {
     channelId: string;
     senderId: string;
-    senderName: string;
     message: string;
-    timestamp: Date;
+    createdAt: Date;
+    updatedAt: Date;
+    _id: string;
 }

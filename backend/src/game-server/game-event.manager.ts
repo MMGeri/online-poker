@@ -26,6 +26,7 @@ class GameEventManager {
 
     public async deleteGame() {
         io.of('/').in(this.gameChannelIdentifier).emit('game-event', { name: OutputEventNameEnum.GAME_ENDED });
+        await this.refundMoney();
         await dbService.updateDocumentById(dbModels.Game, this.gameState._id, { gameOver: true });
         this.gameState.gameOver = true;
         // disconnect sockets
@@ -41,8 +42,6 @@ class GameEventManager {
         const result = await this.calculateNewGameState(event);
         this.gameState = _.merge(this.gameState, result.newState);
         if (result.events.length > 0) {
-            // const originalGameState = await dbService.getGamesByQuery({ _id: this.gameState._id });
-            // this.gameState.options = originalGameState[0].options;
             await dbService.updateDocumentById(dbModels.Game, this.gameState._id, this.gameState);
         }
         return { events: result.events, gameState: removeSensitiveData(this.gameState) };
@@ -51,7 +50,7 @@ class GameEventManager {
     private async calculateNewGameState(event: HybridEvent): Promise<NewStateResult> {
         let result: NewStateResult = { events: [], newState: this.gameState };
         let eventResult: { event: GameEvent | null; newState: IGame };
-        const currentPlayerTurn: string = Object.values(this.gameState.players).find((player) => player.positionAtTable === this.gameState.playerTurn)!.userId;
+        const currentPlayerTurn: string = Array.from(this.gameState.players.values()).find((player) => player.positionAtTable === this.gameState.playerTurn)!.userId;
         if (event.amount) {
             event.amount = parseInt(event.amount.toString(), 10);
             if (isNaN(event.amount) || event.amount < 0) {
@@ -146,7 +145,7 @@ class GameEventManager {
     }
 
     private async handlePhaseChange(result: NewStateResult) {
-        const players = Object.values(result.newState.players);
+        const players = Array.from(result.newState.players.values());
         const allDone = _.every(players, allDoneCondition(result));
         const allReady = _.every(players, (player) => player.ready);
         const blindsPlaced = _.find(players, (player) => player.positionAtTable === 0).bet > 0;
@@ -218,8 +217,19 @@ class GameEventManager {
         }
     }
 
+    private async refundMoney() {
+        const players = this.gameState.players.values();
+        for (const player of players) {
+            const playerFromDb = await dbService.getDocumentById(dbModels.User, player.userId);
+            if (!playerFromDb) {
+                continue;
+            }
+            await dbService.updateDocumentById(dbModels.User, player.userId, { balance: player.inGameBalance + playerFromDb.balance + player.bet });
+        }
+    }
+
     private async payoutRoundWinners(result: NewStateResult) {
-        const players: IPlayer[] = Object.values(result.newState.players);
+        const players: IPlayer[] = Array.from(result.newState.players.values());
         const playersInGame = players.filter((player) => !player.folded && !player.leftGame);
         const playerHandValues = playersInGame.map(
             (player) => ({ ...player, value: calculateValueOfHand(player.cards.concat(result.newState.cardsOnTable)) })
@@ -257,8 +267,11 @@ class GameEventManager {
             }
         }
         for (const player of players) {
-            const playerFromDb = await dbService.getDocumentsByQuery(dbModels.User, { _id: player.userId });
-            await dbService.updateDocumentById(dbModels.User, player.userId, { balance: player.inGameBalance + playerFromDb[0].balance });
+            const playerFromDb = await dbService.getDocumentById(dbModels.User, player.userId);
+            if (!playerFromDb) {
+                continue;
+            }
+            await dbService.updateDocumentById(dbModels.User, player.userId, { balance: player.inGameBalance + playerFromDb.balance });
         }
 
         return result;
@@ -310,7 +323,7 @@ class GameEventManager {
 
     private findNextPlayerWhoCanPlay(result: NewStateResult) {
         const playerTurn = result.newState.playerTurn;
-        const players = Object.values(result.newState.players);
+        const players = Array.from(result.newState.players.values());
         const condtion = (player: IPlayer) => !player.folded && !player.leftGame && !player.tapped;
         let nextPlayer: IPlayer;
         for (let i = 0; i < players.length; i++) {
@@ -385,10 +398,10 @@ class GameEventManager {
         if (!event.amount) {
             return { event: null, newState };
         }
-        const playerFromDb = await dbService.getDocumentsByQuery(dbModels.User, { _id: event.userId });
-        const hasEnoughFunds = playerFromDb[0].balance >= event.amount;
+        const playerFromDb = (await dbService.getDocumentById(dbModels.User, event.userId))!;
+        const hasEnoughFunds = playerFromDb.balance >= event.amount;
         if (newState.phase === 'Getting-Ready' && hasEnoughFunds) {
-            await dbService.updateDocumentById(dbModels.User, event.userId, { balance: playerFromDb[0].balance - event.amount });
+            await dbService.updateDocumentById(dbModels.User, event.userId, { balance: playerFromDb.balance - event.amount });
             newState.players[event.userId].inGameBalance = event.amount;
             return { event, newState };
         }
@@ -401,10 +414,19 @@ interface GameEvenManagers {
 }
 
 class GameEventManagerService {
-    private gameEventManagers: GameEvenManagers = {};
+    public gameEventManagers: GameEvenManagers = {};
 
-    public getGameEventManager(gameId: string): GameEventManager | undefined {
-        return this.gameEventManagers[gameId];
+    constructor() {
+        this.init();
+    }
+
+    async init() {
+        setTimeout(async () => {
+            const games = await dbService.getDocumentsByQuery(dbModels.Game, { gameOver: false });
+            games.forEach((game) => {
+                this.createGameEventManager(game);
+            });
+        }, 1000);
     }
 
     public async deleteGameEventManager(gameId: string) {

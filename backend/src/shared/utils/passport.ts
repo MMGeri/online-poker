@@ -8,17 +8,29 @@ import { dbModels, dbService } from '../services/db.service';
 export const configurePassport = (passport: PassportStatic): PassportStatic => {
 
     passport.serializeUser((user: Express.User, done) => {
-        console.log('user is serialized.');
-        done(null, user);
+        if (!user || !(user as IUser)._id) {
+            done(new BaseError('Unauthorized', 401, 'Invalid username or password', 'backend passport'));
+            return;
+        }
+        done(null, (user as IUser)._id);
     });
 
-    passport.deserializeUser((user: IUser, done) => {
-        console.log('user is deserialized.');
-        done(null, user);
+    passport.deserializeUser((_id: string, done) => {
+        dbService.getDocumentById(dbModels.User, _id).then((user: IUser | null) => {
+            done(null, user);
+        });
     });
 
     passport.use('local', new Strategy(async (username: string, password: string, done: Function) => {
+        if (!username) {
+            done(new BaseError('Unauthorized', 401, 'Invalid username or password', 'backend passport'));
+            return;
+        }
         const userFromDb: IUser[] = await dbService.getDocumentsByQuery(dbModels.User, { username });
+        if (userFromDb.length === 0) {
+            done(new BaseError('Unauthorized', 401, 'Invalid username or password', 'backend passport'));
+            return;
+        }
         const hasRoles = userFromDb[0].roles.length > 0;
         if (checkPassword(password, userFromDb[0].hashedPassword) && hasRoles) {
             done(null, userFromDb[0]);
