@@ -1,15 +1,15 @@
 <div id="chat-list-container">
-
     <h1>Chats</h1>
-    <mat-card class="cards" *ngFor="let chat of chats" class="chat-card" (click)="onSelectChat(chat._id)">
-        <mat-card-header>
-            <mat-card-title>users: {{chat.whiteList}}</mat-card-title>
+    <mat-card class="cards" *ngFor="let chat of chats" class="chat-card" >
+        <mat-card-header (click)="onSelectChat(chat._id, chat.name)">
+            <mat-card-title>{{chat.name}}</mat-card-title>
         </mat-card-header>
-        <!-- <mat-card-content>
-        <p>{{chat.lastMessage}}</p> TODO:
-    </mat-card-content> -->
+        <button *ngIf="user && chat.ownerId===user._id" mat-button (click)="removeChat(chat._id)"
+            color="primary">Remove</button>
+        <button mat-button (click)="leaveChat(chat._id)" color="primary">Leave</button>
     </mat-card>
     <mat-divider></mat-divider>
+    <br>
     <h1>Friends</h1>
     <mat-card class="cards" *ngFor="let friend of friends" class="chat-card" (click)="onSelectFriend(friend._id)">
         <!-- TODO: IMAGE -->
@@ -17,8 +17,16 @@
             <mat-card-title>{{friend.username}} | $:{{friend.balance}}</mat-card-title>
         </mat-card-header>
         <button mat-button (click)="removeFriend(friend._id)" color="primary">Remove</button>
+        <mat-form-field>
+            <mat-label>Invite to game</mat-label>
+            <mat-select>
+                @for (game of myGames; track game) {
+                <mat-option (click)="inviteToGame(game._id, friend._id)">{{game.name}} ({{game.createdAt}})</mat-option>
+                }
+            </mat-select>
+        </mat-form-field>
     </mat-card>
-
+    <br>
     <mat-divider></mat-divider>
     <h2>Add User</h2>
     <input matInput [(ngModel)]="newUser" type="text" (change)="searchUser()">

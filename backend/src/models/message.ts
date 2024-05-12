@@ -3,10 +3,16 @@ import mongoose, { Document, Schema, Model, Types } from 'mongoose';
 interface IMessage extends Document {
     channelId: string;
     senderId: string;
+    senderName?: string;
     message: string;
 }
 
 const messageSchema = new Schema<IMessage>({
+    senderName: {
+        type: String,
+        ref: 'User',
+        required: false
+    },
     channelId: {
         type: String,
         ref: 'Game',

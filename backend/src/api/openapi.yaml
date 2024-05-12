@@ -79,7 +79,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/BaseError"
   /logout:
-    post:
+    get:
       summary: Log out the currently authenticated user
       operationId: logout
       x-eov-operation-handler: api/controllers/auth.controller
@@ -221,7 +221,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserChangeRequest'
+              $ref: '#/components/schemas/UserPutPostRequest'
       responses:
         '200':
           description: User information updated successfully
@@ -469,23 +469,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                gameId:
-                  type: string
-                options:
-                  type: object
-                  properties:
-                    key:
-                      type: string
-                    whiteList:
-                      type: array
-                      items:
-                        type: string
-                    banList:
-                      type: array
-                      items:
-                        type: string
+              $ref: '#/components/schemas/GamePutPostRequest'
       responses:
         '200':
           description: Game updated successfully
@@ -550,27 +534,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                options:
-                  type: object
-                  properties:
-                    whiteList:
-                      type: array
-                      items:
-                        type: string
-                      description: The ids of the users who can join the game or usernames
-                    maxPlayers:
-                      type: number
-                      description: The maximum number of players in the game
-                    isPublic:
-                      type: boolean
-                      description: If true, anyone can join the game
-                    maxRaises:
-                      type: number
-                      description: The maximum number of raises in a round
-              required:
-                - options
+              $ref: '#/components/schemas/GamePutPostRequest'
       responses:
         '200':
           description: Game created successfully
@@ -701,7 +665,7 @@ paths:
 # Chat
   /chats:
     get:
-      summary: Get all chat channels the user has access to
+      summary: Get all chat channels the user has access to (non game chats)
       operationId: getChats
       x-eov-operation-handler: api/controllers/chat.controller
       tags:
@@ -738,7 +702,7 @@ paths:
         - Chat
       parameters:
         - in: query
-          name: chatId
+          name: channelId
           schema:
             type: string
           required: true
@@ -748,23 +712,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                options:
-                  type: object
-                  properties:
-                    key:
-                      type: string
-                    whiteList:
-                      type: array
-                      items:
-                        type: string
-                    banList:
-                      type: array
-                      items:
-                        type: string
-              required:
-                - options
+              $ref: '#/components/schemas/ChatPutPostRequest'
       responses:
         '200':
           description: Chat channel updated successfully
@@ -795,7 +743,7 @@ paths:
         - Chat
       parameters:
         - in: query
-          name: chatId
+          name: channelId
           schema:
             type: string
           required: true
@@ -831,21 +779,14 @@ paths:
             schema:
               type: object
               properties:
-                options:
-                  type: object
-                  properties:
-                    key:
+                  name:
+                    type: string
+                  whiteList:
+                    type: array
+                    items:
                       type: string
-                    whiteList:
-                      type: array
-                      items:
-                        type: string
-                    banList:
-                      type: array
-                      items:
-                        type: string
-              required:
-                - options
+                  standalone:
+                    type: boolean
       responses:
         '200':
           description: Chat channel created successfully
@@ -867,7 +808,7 @@ paths:
                 $ref: "#/components/schemas/BaseError"
       security:
         - cookieAuth: []
-  /chat/message:
+  /chat/messages:
     get:
       summary: Get all messages of chat channel
       operationId: getMessages
@@ -971,6 +912,7 @@ paths:
                 $ref: "#/components/schemas/BaseError"
       security:
         - chatMemberAuth: []
+
 components:
   schemas:
     UserRegistration:
@@ -1015,7 +957,7 @@ components:
       additionalProperties: false
       required:
         - _id
-    UserChangeRequest:
+    UserPutPostRequest:
       type: object
       properties:
         _id:
@@ -1033,73 +975,67 @@ components:
       additionalProperties: false
       required:
         - _id
-    GamesResponse: # TODO: remove unvanted fields like user balance, and populate user, also remove cards etc.
-      type: array
-      items:
-        type: object
-        properties:
-          _id:
-            type: string
-          ownerId:
-            type: string
-          chatChannelId:
-            type: string
-          players:
-            type: array
-            items:
-              type: object
-              properties:
-                userId:
-                  type: string
-                positionAtTable:
-                  type: number
-                stillPlayingInRound:
-                  type: boolean
-                leftGame:
-                  type: boolean
-          round:
-            type: number
-          phase:
-            type: string
-    GameResponse: # TODO: remove unvanted fields like user balance, and populate user
+    BaseError:
+      type: object
+      properties:
+        name:
+          type: string
+        message:
+          type: string
+        status:
+          type: number
+        originatedFrom:
+          type: string
+    GamePutPostRequest:
       type: object
       properties:
         _id:
           type: string
         ownerId:
           type: string
+        name:
+          type: string
         chatChannelId:
           type: string
+        pot:
+          type: number
         players:
-          type: array
-          items:
-            type: object
-            properties:
-              userId:
-                type: string
-              cards:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    value:
-                      type: string
-                    sign:
-                      type: string
-              inGameBalance:
-                type: number
-              bet:
-                type: number
-              called:
-                type: boolean
-              raisedTimes:
-                type: number
-              positionAtTable:
-                type: number
-              stillPlayingInRound:
-                type: boolean
-              leftGame:
-                type: boolean
+          type: object
+          properties:
+            userId:
+              type: string
+            cards:
+              type: array
+              items:
+                type: object
+                properties:
+                  value:
+                    type: string
+                  sign:
+                    type: string
+            inGameBalance:
+              type: number
+            bet:
+              type: number
+            checked:
+              type: boolean
+            called:
+              type: boolean
+            raisedTimes:
+              type: number
+            tapped:
+              type: boolean
+            tappedAtPot:
+              type: number
+            positionAtTable:
+              type: number
+            folded:
+              type: boolean
+            leftGame:
+              type: boolean
+          additionalProperties: false
+        playerTurn:
+          type: number
         cardsOnTable:
           type: array
           items:
@@ -1120,31 +1056,105 @@ components:
                 type: string
         round:
           type: number
-        paused:
-          type: boolean
         phase:
           type: string
+        gameStarted:
+          type: boolean
+        gameOver:
+          type: boolean
         options:
           type: object
           properties:
-            key:
-              type: string
             whiteList:
               type: array
               items:
                 type: string
-            banList:
-              type: array
-              items:
-                type: string
-    ChatsResponse:
-      type: array
-      items:
-        $ref: '#/components/schemas/ChatResponse'
-    ChatResponse:
+            maxPlayers:
+              type: number
+            maxRaises:
+              type: number
+            isPublic:
+              type: boolean
+      additionalProperties: false
+    GameResponse:
       type: object
       properties:
         _id:
+          type: string
+        ownerId:
+          type: string
+        name:
+          type: string
+        chatChannelId:
+          type: string
+        pot:
+          type: number
+        players:
+          type: object
+          properties:
+            userId:
+              type: string
+            inGameBalance:
+              type: number
+            bet:
+              type: number
+            checked:
+              type: boolean
+            called:
+              type: boolean
+            raisedTimes:
+              type: number
+            tapped:
+              type: boolean
+            tappedAtPot:
+              type: number
+            positionAtTable:
+              type: number
+            folded:
+              type: boolean
+            leftGame:
+              type: boolean
+          additionalProperties: false
+        playerTurn:
+          type: number
+        round:
+          type: number
+        phase:
+          type: string
+        gameStarted:
+          type: boolean
+        gameOver:
+          type: boolean
+        options:
+          type: object
+          properties:
+            whiteList:
+              type: array
+              items:
+                type: string
+            maxPlayers:
+              type: number
+            maxRaises:
+              type: number
+            isPublic:
+              type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      additionalProperties: false
+    GamesResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/GameResponse'
+    ChatPutPostRequest:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
           type: string
         ownerId:
           type: string
@@ -1152,12 +1162,69 @@ components:
           type: array
           items:
             type: string
-        banList:
+        standalone:
+          type: boolean
+      additionalProperties: false
+    ChatResponse:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        ownerId:
+          type: string
+        whiteList:
           type: array
           items:
             type: string
-        key:
+        standalone:
+          type: boolean
+        createdAt:
           type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      additionalProperties: false
+    ChatsResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/ChatResponse'
+    UserResponse:
+      type: object
+      properties:
+        _id:
+          type: string
+        username:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        balance:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      additionalProperties: false
+    UsersResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/UserResponse'
+    MessageRequest:
+      type: object
+      properties:
+        channelId:
+          type: string
+        message:
+          type: string
+      required:
+        - channelId
+        - message
     MessageResponse:
       type: object
       properties:
@@ -1165,28 +1232,21 @@ components:
           type: string
         channelId:
           type: string
-        senderId:
+        userId:
           type: string
         message:
           type: string
         createdAt:
           type: string
           format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      additionalProperties: false
     MessagesResponse:
       type: array
       items:
         $ref: '#/components/schemas/MessageResponse'
-    BaseError:
-      type: object
-      properties:
-        name:
-          type: string
-        message:
-          type: string
-        status:
-          type: number
-        originatedFrom:
-          type: string
   securitySchemes:
     cookieAuth:
       type: apiKey
@@ -1216,9 +1276,3 @@ components:
       type: apiKey
       in: cookie
       name: connect.sid
-
-# TODO: mindehol jo response
-# TODO: error messagek ahol lehet
-# TODO: example es description
-# TODO: plural or not plural, also generic all endpoint or single endpoint?
-# FIXME: change query to path param where needed

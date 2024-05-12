@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSidenavModule } from '@angular/material/sidenav';
+import { BackendService } from '../../services/backend.service';
 
 @Component({
     selector: 'app-header',
@@ -25,7 +26,7 @@ export class HeaderComponent {
     user!: IUser | null;
     @Output() openChatList = new EventEmitter<void>();
 
-    constructor(private userService: UserService, private router: Router) { }
+    constructor(private userService: UserService, private router: Router, private backendService: BackendService) { }
 
     ngOnInit() {
         this.userService.getUser().subscribe((user: IUser | null) => {
@@ -38,7 +39,8 @@ export class HeaderComponent {
     }
 
     logout() {
-        this.userService.setUser(null);
-        this.router.navigateByUrl('/login');
+        this.backendService.logout().subscribe(() => {
+        });
+        this.userService.logout();
     }
 }

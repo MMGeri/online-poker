@@ -51,7 +51,7 @@ const gameSchema = new Schema<IGame>({
     },
     name: {
         type: String,
-        default: 'Poker Game'
+        default: 'New Game'
     },
     chatChannelId: {
         type: String,

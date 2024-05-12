@@ -23,6 +23,10 @@ export class BackendService {
         return this.http.post(`${this.backendUrl}/login`, { username, password }, { withCredentials: true });
     }
 
+    logout() {
+        return this.http.get(`${this.backendUrl}/logout`, { withCredentials: true });
+    }
+
     register(username: string, password: string) {
         return this.http.post(`${this.backendUrl}/register`, { username, password });
     }
@@ -42,13 +46,7 @@ export class BackendService {
         return this.http.get<IUser>(`${this.backendUrl}/user/${userId}`, { withCredentials: true });
     }
 
-    getMessages(page: number, channelId: string): Observable<IMessage[]> {
-        return this.http.get<IMessage[]>(`${this.backendUrl}/messages`, { params: { page, channelId } });
-    }
-
-    getMyChats(): Observable<IChat[]> {
-        return this.http.get<IChat[]>(`${this.backendUrl}/chats`, { withCredentials: true });
-    }
+    // -- friends
 
     getFriends(): Observable<IUser[]> {
         return this.http.get<IUser[]>(`${this.backendUrl}/friends`, { withCredentials: true });
@@ -63,8 +61,10 @@ export class BackendService {
     }
 
     checkAuth() {
-        return this.http.get(`${this.backendUrl}/checkAuth`, { withCredentials: true });
+        return this.http.get<IUser>(`${this.backendUrl}/checkAuth`, { withCredentials: true });
     }
+
+    // --- Games
 
     getGameBySearchTerm(searchTerm: string, page: number = 0): Observable<IGame[]> {
         // return this.http.get<IGame[]>(`${this.backendUrl}/games`, { params: { name: searchTerm, page } });
@@ -103,5 +103,30 @@ export class BackendService {
 
     joinGame(gameId: string) {
         return this.http.get<any>(`${this.backendUrl}/game/join`, { params: { gameId }, withCredentials: true });
+    }
+
+    joinGameWithToken(token: string) {
+        return this.http.get<any>(`${this.backendUrl}/game/join`, { params: { token }, withCredentials: true });
+    }
+
+    inviteToGame(gameId: string, userId: string) {
+        return this.http.post<string>(`${this.backendUrl}/game/invite`, { params: { gameId, userId } }, { withCredentials: true });
+    }
+
+    // --- Chat
+    getMyChats(): Observable<IChat[]> {
+        return this.http.get<IChat[]>(`${this.backendUrl}/chats`, { withCredentials: true });
+    }
+    getMessages(page: number, channelId: string): Observable<IMessage[]> {
+        return this.http.get<IMessage[]>(`${this.backendUrl}/chat/messages`, { params: { page, channelId }, withCredentials: true });
+    }
+    createChat(chat: Partial<IChat>): Observable<IChat> {
+        return this.http.post<IChat>(`${this.backendUrl}/chat`, chat, { withCredentials: true });
+    }
+    deleteChat(channelId: string) {
+        return this.http.delete(`${this.backendUrl}/chat`, { params: { channelId }, withCredentials: true });
+    }
+    leaveChat(channelId: string) {
+        return this.http.get(`${this.backendUrl}/chat/leave`, { params: { channelId }, withCredentials: true });
     }
 }

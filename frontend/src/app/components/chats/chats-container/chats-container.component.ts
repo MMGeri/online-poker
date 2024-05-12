@@ -10,16 +10,16 @@ import { CommonModule } from '@angular/common';
     styleUrl: './chats-container.component.css'
 })
 export class ChatsContainerComponent {
-    openChats: string[] = [];
+    openChats: { chatId: string, chatName: string }[] = [];
 
-    addChat(chatId: string) {
-        if (this.openChats.includes(chatId)) {
+    addChat(event: { chatId: string, chatName: string }) {
+        if (this.openChats.find(chat => chat.chatId === event.chatId)) {
             return;
         }
-        this.openChats.push(chatId);
+        this.openChats.push(event);
     }
 
     closeChat(chatId: any) {
-        this.openChats = this.openChats.filter(id => id !== chatId);
+        this.openChats = this.openChats.filter(chat => chat.chatId !== chatId);
     }
 }

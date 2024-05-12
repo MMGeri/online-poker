@@ -24,3 +24,12 @@ table {
     color: white;
     padding: 10px;
 }
+.game-name {
+    text-decoration: underline;
+    font-weight: bold;
+}
+
+.game-name:hover {
+    cursor: pointer;
+    background-color: gray;
+}

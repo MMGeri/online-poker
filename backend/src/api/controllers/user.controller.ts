@@ -2,7 +2,7 @@ import { Response, Request } from 'express';
 import _ from 'lodash';
 import { dbModels, dbService } from '../../shared/services/db.service';
 import { IChannel, IGame, IUser } from '../../models';
-import { isBSONType, secureUser } from '../../game-server/utils';
+import { isBSONType, secureUser } from '../../shared/utils/utils';
 
 async function deleteUser(req: Request, res: Response) {
     const user = req.user as IUser;
@@ -47,14 +47,14 @@ async function getUserById(req: Request, res: Response) {
 async function getUsers(req: Request, res: Response) {
     const username = req.query.username as string;
     const users = await dbService.getDocumentsByQuery(dbModels.User, { username });
-    users.map(secureUser);
+    users.map(u => secureUser(u));
     res.status(200).send(users);
 }
 
 async function getFriends(req: Request, res: Response) {
     const user = (req.user as IUser);
     const users = await dbService.getDocumentsByQuery(dbModels.User, { _id: { $in: user.friends } });
-    res.status(200).send(users.map(secureUser));
+    res.status(200).send(users.map(u => secureUser(u)));
 }
 
 async function addFriend(req: Request, res: Response) {

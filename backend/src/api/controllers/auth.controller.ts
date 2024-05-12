@@ -4,6 +4,7 @@ import passport from 'passport';
 import { IUser } from '../../models/user';
 import { BaseError } from '../middleware/error-handler';
 import { dbModels, dbService } from '../../shared/services/db.service';
+import { secureUser } from '../../shared/utils/utils';
 
 async function login(req: Request, res: Response) {
     passport.authenticate('local', (error: any, user: IUser) => {
@@ -17,7 +18,7 @@ async function login(req: Request, res: Response) {
                 return;
             }
             user._id = user._id.toString();
-            res.status(200).json(user);
+            res.status(200).json(secureUser(user as IUser, true));
         });
     })(req, res);
 }
@@ -53,7 +54,7 @@ module.exports = {
     register,
     checkAuth: (req: Request, res: Response) => {
         if (req.isAuthenticated()) {
-            res.status(200).send(true);
+            res.status(200).send(secureUser(req.user as IUser, true));
         } else {
             res.status(401).send('Unauthorized');
         }

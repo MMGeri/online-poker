@@ -10,7 +10,7 @@ export const phases = ['Getting-Ready', 'Pre-flop', 'Flop', 'Turn', 'River'] as 
 
 export interface IPlayer {
     userId: string;
-    cards: ICard[];
+    cards?: ICard[];
     inGameBalance: number;
     bet: number;
     called: boolean;
@@ -31,8 +31,8 @@ export interface IGame extends Document {
     pot: number;
     players: Map<string, IPlayer>;
     playerTurn: number;
-    cardsOnTable: ICard[];
-    cardsInDeck: ICard[];
+    cardsOnTable?: ICard[];
+    cardsInDeck?: ICard[];
     round: number;
     phase: typeof phases[number];
     gameStarted: boolean;

@@ -1,6 +1,5 @@
 <!-- iterate through open chats -->
-<div id="chat-container">
-    <div *ngFor="let chat of openChats" class="chat-window">
-        <app-chat [channelId]="chat" (closeChat)="closeChat($event)"></app-chat>
-    </div>
+<div #target id="chat-container">
+    <app-chat *ngFor="let chat of openChats" [channel]="chat" (closeChat)="closeChat($event)"
+        class="chat-window-container"></app-chat>
 </div>

@@ -1,8 +1,15 @@
-<div id="chat-window">
-    <ul>
-        @for (m of messages; track m._id )
-        { <li>{{ m._id }}>&nbsp;&nbsp;&nbsp;{{ m.message }}</li> }
-    </ul>
-    <input [(ngModel)]="message" (keydown.enter)="sendMessage()" type="text">
-    <button (click)="sendMessage()">Send</button>
-</div>
+<div [ngClass]="minimized ? 'minimized' : 'window-border'">
+    <button style="margin: 3px;" matButton (click)="toggleMinimize()">{{ minimized ? "□" : "-"}}</button>
+    <button style="margin: 3px;" matButton (click)="onClose()">X</button>
+    <span style="margin: 3px;">{{ channel.chatName }}</span>
+    <div *ngIf="!minimized" id="chat-window">
+        <ul id="messages">
+            <li *ngFor="let m of messages; trackBy: trackByFn" #messageContainer>
+                {{ m.senderName }}>&nbsp;&nbsp;&nbsp;{{ m.message }}
+            </li>
+        </ul>
+    </div>
+    <input style="width:60%; margin: 3px 3px 3px 3px" *ngIf="!minimized" [(ngModel)]="message"
+        (keydown.enter)="sendMessage()" type="text">
+    <button style="width:20%; margin: 3px 3px 3px 3px" *ngIf="!minimized" matButton (click)="sendMessage()">Send</button>
+    </div>

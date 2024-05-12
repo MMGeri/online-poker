@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common';
 import { UserService } from '../../services/user.service';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { SocketIoService } from '../../services/socket-io.service';
 
 @Component({
     selector: 'app-login',
@@ -24,7 +25,8 @@ export class LoginComponent {
         private formBuilder: FormBuilder,
         private backendService: BackendService,
         private router: Router,
-        private userService: UserService
+        private userService: UserService,
+        private socketIoService: SocketIoService
     ) { }
 
     ngOnInit(): void {
@@ -41,6 +43,7 @@ export class LoginComponent {
         this.backendService.login(username, password).subscribe((response) => {
             this.router.navigate(['/home']);
             this.userService.setUser(response);
+            this.socketIoService.reconnect();
         }, (error) => {
             this.errorMessage = error.error;
         });

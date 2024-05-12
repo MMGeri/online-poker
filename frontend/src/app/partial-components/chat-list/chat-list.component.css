@@ -3,7 +3,6 @@ mat-card:hover {
     cursor: pointer;
 }
 
-#chat-list {
-    display: flex;
-    flex-direction: column;
+#chat-list-container {
+    padding: 20px
 }

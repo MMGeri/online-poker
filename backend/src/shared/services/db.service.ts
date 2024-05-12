@@ -52,7 +52,7 @@ export const dbService = {
         // @ts-expect-error - it's fine
         let queryBuilder = Model.find(query, projection, options);
         if (page !== undefined) {
-            queryBuilder = queryBuilder.skip(page * 10).limit(10);
+            queryBuilder = queryBuilder.skip(page * 100).limit(100);
         }
         return queryBuilder.exec();
     },

@@ -2,8 +2,8 @@ import * as _ from 'lodash';
 import { ICard, IGame, IPlayer } from '../models/game';
 import { io } from '../app';
 import { dbModels, dbService } from '../shared/services/db.service';
+import { calculateValueOfHand, removeSensitiveData, allDoneCondition, calculateMoneyNeeded } from '../shared/utils/utils';
 import { GameEvent, HybridEvent, HybridEventNameEnum, NewStateResult, OutputEventNameEnum, PrivateEventNameEnum, SafeGameState } from './game-events.model';
-import { calculateValueOfHand, removeSensitiveData, allDoneCondition, calculateMoneyNeeded } from './utils';
 
 
 const userActions = [
@@ -27,7 +27,7 @@ class GameEventManager {
     public async deleteGame() {
         io.of('/').in(this.gameChannelIdentifier).emit('game-event', { name: OutputEventNameEnum.GAME_ENDED });
         await this.refundMoney();
-        await dbService.updateDocumentById(dbModels.Game, this.gameState._id, { gameOver: true });
+        await dbService.updateDocumentById(dbModels.Game, this.gameState._id.toString(), { gameOver: true });
         this.gameState.gameOver = true;
         // disconnect sockets
         const namespace = io.of('/').in(this.gameChannelIdentifier);
@@ -42,7 +42,7 @@ class GameEventManager {
         const result = await this.calculateNewGameState(event);
         this.gameState = _.merge(this.gameState, result.newState);
         if (result.events.length > 0) {
-            await dbService.updateDocumentById(dbModels.Game, this.gameState._id, this.gameState);
+            await dbService.updateDocumentById(dbModels.Game, this.gameState._id.toString(), this.gameState);
         }
         return { events: result.events, gameState: removeSensitiveData(this.gameState) };
     }
@@ -50,7 +50,11 @@ class GameEventManager {
     private async calculateNewGameState(event: HybridEvent): Promise<NewStateResult> {
         let result: NewStateResult = { events: [], newState: this.gameState };
         let eventResult: { event: GameEvent | null; newState: IGame };
-        const currentPlayerTurn: string = Array.from(this.gameState.players.values()).find((player) => player.positionAtTable === this.gameState.playerTurn)!.userId;
+        const currentPlayerTurn: string =
+            Array.from(this.gameState.players.values())
+                .find((player) => player.positionAtTable === this.gameState.playerTurn)!
+                .userId
+                .toString();
         if (event.amount) {
             event.amount = parseInt(event.amount.toString(), 10);
             if (isNaN(event.amount) || event.amount < 0) {
@@ -148,7 +152,8 @@ class GameEventManager {
         const players = Array.from(result.newState.players.values());
         const allDone = _.every(players, allDoneCondition(result));
         const allReady = _.every(players, (player) => player.ready);
-        const blindsPlaced = _.find(players, (player) => player.positionAtTable === 0).bet > 0;
+        const blind = players.find((player) => player.positionAtTable === 0);
+        const blindsPlaced = blind ? blind.bet > 0 : false;
 
         // Pre-flop phase // everyone gets 2 cards dealt
         if (result.newState.phase === 'Getting-Ready' && allReady && blindsPlaced) {
@@ -220,11 +225,14 @@ class GameEventManager {
     private async refundMoney() {
         const players = this.gameState.players.values();
         for (const player of players) {
-            const playerFromDb = await dbService.getDocumentById(dbModels.User, player.userId);
+            const playerFromDb = await dbService.getDocumentById(dbModels.User, player.userId.toString());
             if (!playerFromDb) {
+                console.log('Could not find player in db', player.userId);
                 continue;
             }
-            await dbService.updateDocumentById(dbModels.User, player.userId, { balance: player.inGameBalance + playerFromDb.balance + player.bet });
+            await dbService.updateDocumentById(dbModels.User, player.userId.toString(), {
+                $set: { balance: player.inGameBalance + playerFromDb.balance + player.bet }
+            });
         }
     }
 
@@ -267,11 +275,16 @@ class GameEventManager {
             }
         }
         for (const player of players) {
-            const playerFromDb = await dbService.getDocumentById(dbModels.User, player.userId);
+            const playerFromDb = await dbService.getDocumentById(dbModels.User, player.userId.toString());
             if (!playerFromDb) {
                 continue;
             }
-            await dbService.updateDocumentById(dbModels.User, player.userId, { balance: player.inGameBalance + playerFromDb.balance });
+            const updated = await dbService.updateDocumentById(dbModels.User, player.userId.toString(), {
+                $set: { balance: player.inGameBalance + playerFromDb.balance }
+            });
+            if (!updated) {
+                console.log('Could not update player balance');
+            }
         }
 
         return result;
@@ -401,7 +414,9 @@ class GameEventManager {
         const playerFromDb = (await dbService.getDocumentById(dbModels.User, event.userId))!;
         const hasEnoughFunds = playerFromDb.balance >= event.amount;
         if (newState.phase === 'Getting-Ready' && hasEnoughFunds) {
-            await dbService.updateDocumentById(dbModels.User, event.userId, { balance: playerFromDb.balance - event.amount });
+            await dbService.updateDocumentById(dbModels.User, event.userId, {
+                $set: { balance: playerFromDb.balance - event.amount }
+            });
             newState.players[event.userId].inGameBalance = event.amount;
             return { event, newState };
         }

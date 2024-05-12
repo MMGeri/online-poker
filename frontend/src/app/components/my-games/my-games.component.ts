@@ -6,6 +6,7 @@ import { MatCard } from '@angular/material/card';
 import { MatSortModule } from '@angular/material/sort';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { Router } from '@angular/router';
 
 @Component({
     selector: 'app-my-games',
@@ -18,12 +19,11 @@ export class MyGamesComponent {
     displayedColumns: string[] = ['name', 'players', 'gameStarted', 'gameOver', 'pot', 'phase', 'round', 'edit', 'delete'];
     games: any[] = [];
 
-    constructor(private backendService: BackendService) { }
+    constructor(private backendService: BackendService, private router: Router) { }
 
     ngOnInit() {
         this.backendService.getMyGames().subscribe((games: any[]) => {
             this.games = games;
-            console.log(games);
         }, (error) => {
             console.error(error);
         });
@@ -38,4 +38,16 @@ export class MyGamesComponent {
             this.games = this.games.filter(g => g._id !== gameId);
         });
     }
+
+    joinGame(gameId: string) {
+        this.backendService.joinGame(gameId).subscribe(() => {
+            this.router.navigateByUrl(`/game/${gameId}`);
+        }, (error: any) => {
+            console.error(error);
+        });
+    }
 }
+
+
+// TODO: sort
+// TODO: update chat? 

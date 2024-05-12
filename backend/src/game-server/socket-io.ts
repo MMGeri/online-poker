@@ -20,30 +20,45 @@ io.engine.use(onlyForHandshake(sessionAuth));
 io.on('connection', (socket: Socket) => {
     const user = socket.request['user'] as IUser;
     const sid = socket.id;
+    console.log(user.username, 'connected');
 
     socket.use(applyRateLimiting(socket, user));
 
     socket.on('join-chat-channel', async (obj: { key: string; channelId: string }) => {
         if (await canJoinChatChannel(user._id, obj.channelId)) {
+            console.log('join chat channel', user.username, obj.channelId);
             socket.join(`chat:${obj.channelId}`);
         }
     });
     socket.on('join-game-channel', async (obj: { key: string; gameId: string }) => {
         if (await canJoinGameChannel(obj.key, obj.gameId)) {
+            console.log('join game channel', user.username, obj.gameId);
             socket.join(`game:${obj.gameId}`);
             socket.join(`game:${obj.gameId}:${user._id}`); // private room
         }
     });
+    socket.on('leave-chat-channel', (obj: { channelId: string }) => {
+        console.log('leave chat channel', user.username, obj.channelId);
+        socket.leave(`chat:${obj.channelId}`);
+    });
+    socket.on('leave-game-channel', (obj: { gameId: string }) => {
+        console.log('leave game channel', user.username, obj.gameId);
+        socket.leave(`game:${obj.gameId}`);
+        socket.leave(`game:${obj.gameId}:${user._id}`); // private room
+    });
     socket.on('new-message', (obj: { message: string; channelId: string }) => {
+        console.log('new message', obj);
         const messageObj: Partial<IMessage> & { senderName: string } = {
             channelId: obj.channelId,
             senderId: user._id,
             senderName: user.username,
             message: obj.message
         };
-        socket.to(`chat:${obj.channelId}`).emit('new-message', messageObj);
+        io.in(`chat:${obj.channelId}`).emit('new-message', messageObj);
+        dbService.createDocument(dbModels.Message, messageObj);
     });
     socket.on('game-event', async (obj: { inputEvent: HybridEvent; gameId: string }) => {
+        console.log('game event', obj);
         obj.inputEvent.userId = user._id;
         if (!isInputEvent(obj.inputEvent) ||
             !userOwnsSocket(user._id, obj.inputEvent.userId)) {
@@ -55,11 +70,11 @@ io.on('connection', (socket: Socket) => {
         }
         const { events, gameState } = await gameEventManager.getNewGameState(obj.inputEvent);
         for (const event of events) {
-            socket.to(`game:${obj.gameId}`).emit('game-event', { event, gameState });
+            io.in(`game:${obj.gameId}`).emit('game-event', { event, gameState });
         }
     });
     socket.on('disconnect', () => {
-        console.log('user disconnected');
+        console.log(user.username, 'disconnected');
     });
 });
 

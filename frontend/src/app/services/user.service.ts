@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { IUser } from '../../models/user';
 import { BehaviorSubject } from 'rxjs';
+import { Router } from '@angular/router';
+import { SocketIoService } from './socket-io.service';
 
 @Injectable({
     providedIn: 'root'
@@ -8,7 +10,7 @@ import { BehaviorSubject } from 'rxjs';
 export class UserService {
     user: BehaviorSubject<IUser | null> = new BehaviorSubject<IUser | null>(null);
 
-    constructor() {
+    constructor(private router: Router, private socketIoService: SocketIoService) {
         const user = localStorage.getItem('user');
         if (user) {
             this.user.next(JSON.parse(user));
@@ -26,5 +28,11 @@ export class UserService {
 
     getUser() {
         return this.user.asObservable();
+    }
+
+    logout() {
+        this.setUser(null);
+        this.router.navigateByUrl('/login');
+        this.socketIoService.disconnect();
     }
 }

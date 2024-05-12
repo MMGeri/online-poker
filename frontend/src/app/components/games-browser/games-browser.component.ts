@@ -31,8 +31,6 @@ export class GamesBrowserComponent {
     }
 
     joinGame(gameId: string) {
-        // Implement logic to join the game
-        // For example, you can navigate to the game route
         this.backendService.joinGame(gameId).subscribe(() => {
             this.router.navigateByUrl(`/game/${gameId}`);
         }, (error: any) => {

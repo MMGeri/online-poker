@@ -1,8 +1,11 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { ChatService } from '../../../services/chat.service';
+import { Component, ElementRef, EventEmitter, Input, OnInit, Output, QueryList, ViewChild, ViewChildren } from '@angular/core';
+import { SocketIoService } from '../../../services/socket-io.service';
 import { FormsModule } from '@angular/forms';
 import { IMessage } from '../../../../models/message';
 import { BackendService } from '../../../services/backend.service';
+import { UserService } from '../../../services/user.service';
+import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
     selector: 'app-chat',
@@ -10,47 +13,92 @@ import { BackendService } from '../../../services/backend.service';
     styleUrls: ['./chat.component.css'],
     standalone: true,
     imports: [
-        FormsModule
+        FormsModule,
+        CommonModule,
+        MatButtonModule
     ]
+    // providers: [ChatService]
 })
 export class ChatComponent implements OnInit {
 
     message?: string;
     messages: IMessage[] = [];
-    @Input() channelId!: string;
+    @Input() channel!: { chatId: string, chatName: string };
+    @Input() channelName!: string;
 
     minimized: boolean = false;
     @Output() closeChat = new EventEmitter<string>();
 
-    constructor(private chatService: ChatService, private backendService: BackendService) { }
+    @ViewChildren('messageContainer') messageContainers!: QueryList<ElementRef>;
+
+    constructor(
+        private socketIoService: SocketIoService,
+        private backendService: BackendService,
+        private host: ElementRef<HTMLElement>,
+        private userService: UserService
+    ) { }
+
+    ngAfterViewInit() {
+        this.scrollToBottom(); // For messages already present
+        this.messageContainers.changes.subscribe(() => {
+            this.scrollToBottom(); // For messages added later
+        });
+    }
 
     ngOnInit() {
-        this.backendService.getMessages(0, this.channelId).subscribe((messages: IMessage[]) => {
+        this.userService.getUser().subscribe((user) => {
+            if (!user) {
+                this.onClose();
+            }
+        });
+        this.backendService.getMessages(0, this.channel.chatId).subscribe((messages: IMessage[]) => {
             this.messages = messages;
         });
-        this.chatService.joinChannel(this.channelId);
-        this.chatService.getMessages().subscribe((message: IMessage) => {
-            this.messages.push(message);
+        this.socketIoService.joinChatChannel(this.channel.chatId);
+        this.socketIoService.getMessages().subscribe((message: any) => {
+            if (message.channelId === this.channel.chatId) {
+                this.scrollToBottom();
+                this.messages.push(message);
+            }
         });
+    }
+
+    scrollToBottom(): void {
+        const messageContainer = this.messageContainers.last;
+        if (messageContainer) {
+            messageContainer.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+    }
+
+    trackByFn(index: number, item: any) {
+        return item._id; // unique id corresponding to the item
     }
 
     sendMessage() {
         if (!this.message) {
             return;
         }
-        this.chatService.sendMessage(this.message, this.channelId);
+        this.socketIoService.sendMessage(this.message, this.channel.chatId);
         this.message = '';
     }
 
     leaveChat() {
-        //TODO: this.backendService.leaveChat(this.channelId);
+        this.backendService.leaveChat(this.channel.chatId).subscribe(() => {
+            this.closeChat.emit(this.channel.chatId);
+            this.socketIoService.leaveChatChannel(this.channel.chatId);
+        });
     }
 
     toggleMinimize() {
         this.minimized = !this.minimized;
     }
 
-    onClose(chatId: string) {
-        this.closeChat.emit(chatId);
+    onClose() {
+        this.closeChat.emit(this.channel.chatId);
+        this.host.nativeElement.remove();
+    }
+
+    ngOnDestroy() {
+        this.socketIoService.leaveChatChannel(this.channel.chatId);
     }
 }

@@ -1,7 +1,9 @@
 export interface IChat {
-    ownrId?: string;
+    name: string;
+    ownerId?: string;
     whiteList: string[];
     createdAt: Date;
     updatedAt: Date;
+    standalone: boolean;
     _id: string;
 }

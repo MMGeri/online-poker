@@ -90,8 +90,8 @@ app.use(OpenApiValidator.middleware({
                     return false;
                 }
                 const user = req.user as IUser;
-                const chatId = req.query.chatId as string;
-                const chat = await dbService.getDocumentById(dbModels.Channel, chatId);
+                const channelId = req.query.channelId as string;
+                const chat = await dbService.getDocumentById(dbModels.Channel, channelId);
                 if (!chat) {
                     return false;
                 }
@@ -102,8 +102,8 @@ app.use(OpenApiValidator.middleware({
                     return false;
                 }
                 const user = req.user as IUser;
-                const chatId = req.query.chatId as string;
-                const chat = await dbService.getDocumentById(dbModels.Channel, chatId);
+                const channelId = req.query.channelId as string;
+                const chat = await dbService.getDocumentById(dbModels.Channel, channelId);
                 if (!chat) {
                     return false;
                 }
@@ -145,6 +145,7 @@ server.listen(port, () => {
 import './game-server/socket-io';
 import { GameModel } from './models';
 import mongoose from 'mongoose';
+import { isBSONType } from './shared/utils/utils';
 
 export default app;
 export { io, passportSession, expressSessionMiddleware };

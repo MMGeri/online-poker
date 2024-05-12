@@ -7,16 +7,15 @@ import { UserService } from './services/user.service';
 export const authGuard: CanActivateFn = (route, state) => {
     const router = inject(Router);
     const userService = inject(UserService);
-    return inject(BackendService).checkAuth().pipe(map(isAuthenticated => {
-        if (!isAuthenticated) {
-            router.navigateByUrl('/login');
-            userService.setUser(null);
+    return inject(BackendService).checkAuth().pipe(map(user => {
+        if (!user) {
+            userService.logout();
             return false;
         }
+        userService.setUser(user);
         return true;
     }), catchError((error: any) => {
-        router.navigateByUrl('/login');
-        userService.setUser(null);
+        userService.logout();
         return of(false);
     }));
 };

@@ -5,7 +5,7 @@ import { IUser } from '../../models/user';
 import { dbModels, dbService } from '../../shared/services/db.service';
 import { BaseError } from '../middleware/error-handler';
 import { decodeJWT, generateJWT } from '../../shared/utils/jwt-handler';
-import { isBSONType, removeSensitiveData, secureUser } from '../../game-server/utils';
+import { isBSONType, removeSensitiveData, secureUser } from '../../shared/utils/utils';
 import { gems } from '../../game-server/game-event.manager';
 
 async function createGame(req: Request, res: Response, next: any) {
@@ -97,9 +97,9 @@ async function getGameById(req: Request, res: Response) {
     }
     const game: any = await dbService.getDocumentById(dbModels.Game, gameId);
     const playersOnWhiteList = await dbService.getDocumentsByQuery(dbModels.User, { _id: { $in: game.options.whiteList } });
-    playersOnWhiteList.map(secureUser);
+    playersOnWhiteList.map(u => secureUser(u));
     game.options.whiteList = playersOnWhiteList;
-    res.status(200).send(game);
+    res.status(200).send(removeSensitiveData(game));
 }
 
 async function updateGame(req: Request, res: Response, next: any) {
@@ -141,10 +141,16 @@ async function deleteGame(req: Request, res: Response, next: any) {
         await gameEventManager.deleteGame();
     }
     const deletedGame = await dbService.deleteDocumentById(dbModels.Game, gameId);
-        if (!deletedGame) {
-            res.status(404).send('Game not found');
-            return;
-        }
+    if (!deletedGame) {
+        res.status(404).send('Game not found');
+        return;
+    }
+    const chatId = deletedGame.chatChannelId;
+    const deletedChat = await dbService.deleteDocumentById(dbModels.Channel, chatId);
+    if (!deletedChat) {
+        next(new BaseError('DbError', 500, 'Chat not found', 'backend game controller'));
+        return;
+    }
     res.status(204).send();
 }
 
@@ -159,6 +165,10 @@ async function joinGame(req: Request, res: Response) {
     }
 
     const game = await dbService.getDocumentById(dbModels.Game, gameId);
+    if (game && game?.options.whiteList.includes(user._id.toString())) {
+        res.status(200).json({ message: 'Already joined' });
+        return;
+    }
     if (game?.options?.isPublic) {
         // eslint-disable-next-line no-var
         var updatedGame = await dbService.updateDocumentById(dbModels.Game, gameId, {
