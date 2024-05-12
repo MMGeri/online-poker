@@ -7,6 +7,21 @@ import { BaseError } from '../middleware/error-handler';
 import { decodeJWT, generateJWT } from '../../shared/utils/jwt-handler';
 import { isBSONType, removeSensitiveData, secureUser } from '../../shared/utils/utils';
 import { gems } from '../../game-server/game-event.manager';
+import { config } from '../../config';
+
+const defaultPlayerSettings = {
+    cards: [],
+    inGameBalance: 0,
+    bet: 0,
+    called: false,
+    checked: false,
+    raisedTimes: 0,
+    tapped: false,
+    tappedAtPot: 0,
+    positionAtTable: 0,
+    folded: false,
+    leftGame: false
+};
 
 async function createGame(req: Request, res: Response, next: any) {
     const game = req.body;
@@ -14,33 +29,23 @@ async function createGame(req: Request, res: Response, next: any) {
     let chat;
     try {
         chat = await dbService.createDocument(dbModels.Channel, {
-            ownerId: user._id,
-            whiteList: [user._id]
+            ownerId: user._id.toString(),
+            whiteList: [user._id.toString()]
         });
     } catch (error: any) {
         next(new BaseError('DbError', 500, error.message, 'backend game controller'));
         return;
     }
     const players = new Map<string, any>();
-    players.set(user._id, {
-        userId: user._id,
-        cards: [],
-        inGameBalance: 0,
-        bet: 0,
-        called: false,
-        checked: false,
-        raisedTimes: 0,
-        tapped: false,
-        tappedAtPot: 0,
-        positionAtTable: 0,
-        folded: false,
-        leftGame: false
+    players.set(user._id.toString(), {
+        ...defaultPlayerSettings,
+        userId: user._id.toString()
     });
     const gameToCreate = {
         ...game,
-        ownerId: user._id,
+        ownerId: user._id.toString(),
         chatChannelId: chat._id,
-        options: { ...game.options, whiteList: [...game.options.whiteList, user._id] },
+        options: { ...game.options, whiteList: [...game.options.whiteList, user._id.toString()] },
         players: players
     };
     if (gameToCreate.options.maxPlayers > gameToCreate.options.whiteList.length) {
@@ -155,7 +160,6 @@ async function deleteGame(req: Request, res: Response, next: any) {
 }
 
 async function joinGame(req: Request, res: Response) {
-    const token = req.query.token as string;
     const gameId = req.query.gameId as string;
     const user = (req.user as IUser);
 
@@ -170,27 +174,15 @@ async function joinGame(req: Request, res: Response) {
         return;
     }
     if (game?.options?.isPublic) {
+        const set = {};
+        set[`players.${user._id}`] = { ...defaultPlayerSettings, userId: user._id.toString() };
         // eslint-disable-next-line no-var
         var updatedGame = await dbService.updateDocumentById(dbModels.Game, gameId, {
-            $addToSet: { 'options.whiteList': user._id },
-            $set: {
-                'players': { [user._id]: { userId: user._id } }
-            }
-        });
-    } else if (token) {
-        const decodedToken = decodeJWT(token);
-        const userId: string | undefined = decodedToken.userId;
-        if (userId && user._id !== userId) {
-            res.status(401).send('Unauthorized');
-            return;
-        }
-        // eslint-disable-next-line no-var
-        var updatedGame = await dbService.updateDocumentById(dbModels.Game, gameId, {
-            $addToSet: { 'options.whiteList': user._id },
-            $set: { 'players': { [user._id]: { userId: user._id } } }
+            $addToSet: { 'options.whiteList': user._id.toString() },
+            $set: set
         });
     } else {
-        res.status(400).send('Invalid token or gameId');
+        res.status(400).send('Invalid gameId');
         return;
     }
 
@@ -200,7 +192,7 @@ async function joinGame(req: Request, res: Response) {
     }
 
     const updatedChat = await dbService.updateDocumentById(dbModels.Channel, updatedGame.chatChannelId, {
-        $addToSet: { 'whiteList': user._id }
+        $addToSet: { 'whiteList': user._id.toString() }
     });
     if (!updatedChat) {
         res.status(500).send('Chat not found');
@@ -239,11 +231,39 @@ async function inviteUser(req: Request, res: Response) {
         res.status(404).send('Game not found');
         return;
     }
-    if (userId) {
-        res.status(200).send(generateJWT({ gameId, userId }));
+    res.status(200).send({ token: generateJWT({ gameId, userId }) });
+}
+
+async function getMagicLink(req: Request, res: Response) {
+    const gameId = req.query.gameId as string;
+    const token = req.query.token as string;
+    if (!isBSONType(gameId)) {
+        res.status(400).send('Invalid game id');
         return;
     }
-    res.status(200).send(generateJWT({ gameId }));
+    if (token) {
+        const decodedToken = decodeJWT(token);
+        const userId: string = decodedToken.userId;
+        const game = await dbService.getDocumentById(dbModels.Game, gameId);
+        if (game) {
+            const isUserInWhiteList = game.options.whiteList.includes(userId);
+            if (isUserInWhiteList) {
+                res.redirect(301, `${config.frontendUrl}/game/${gameId}`);
+                return;
+            }
+        } else {
+            res.status(404).send('Game not found');
+            return;
+        }
+        // eslint-disable-next-line no-var
+        const set = {};
+        set[`players.${userId}`] = { ...defaultPlayerSettings, userId };
+        await dbService.updateDocumentById(dbModels.Game, gameId, {
+            $addToSet: { 'options.whiteList': userId },
+            $set: set
+        });
+    }
+    res.redirect(301, `${config.frontendUrl}/game/${gameId}`);
 }
 
 module.exports = {
@@ -254,5 +274,6 @@ module.exports = {
     createGame,
     joinGame,
     leaveGame,
-    inviteUser
+    inviteUser,
+    getMagicLink
 };

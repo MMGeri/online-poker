@@ -10,11 +10,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { UserService } from '../../services/user.service';
 import { IGame } from '../../../models/game';
 import { MatSelectModule } from '@angular/material/select';
+import { environment } from '../../../environments/environment';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 
 @Component({
     selector: 'app-chat-list',
     standalone: true,
-    imports: [MatCardModule, MatDividerModule, CommonModule, FormsModule, MatButtonModule, MatSelectModule, FormsModule],
+    imports: [MatCardModule, MatDividerModule, CommonModule, FormsModule, MatInputModule, MatButtonModule, MatSelectModule, FormsModule, MatIconModule],
     templateUrl: './chat-list.component.html',
     styleUrl: './chat-list.component.css'
 })
@@ -28,6 +31,8 @@ export class ChatListComponent {
 
     user: IUser | null = null;
     myGames: IGame[] = [];
+
+    magicLink: string = '';
 
     ngOnInit() {
         this.backendService.getFriends().subscribe((friends: IUser[]) => {
@@ -102,9 +107,12 @@ export class ChatListComponent {
     }
 
     inviteToGame(gameId: string, friendId: string) {
-        // create chat and send message? 
-        this.backendService.inviteToGame(gameId, friendId).subscribe((token: string) => {
-            console.log('Invited to game', token);
+        this.backendService.inviteToGame(gameId, friendId).subscribe((resp: { token: string }) => {
+            this.magicLink = `${environment.backendUrl}/game/magicLink/?gameId=${gameId}&token=${resp.token}`;
         });
+    }
+
+    copyLink() {
+        navigator.clipboard.writeText(this.magicLink);
     }
 }

@@ -8,5 +8,6 @@ export const config = {
     dbUri: env.get('DB_URI').required().asString(),
     whitelist: env.get('WHITELIST').required().asArray(),
     production: env.get('NODE_ENV').asString() === 'production',
-    socketChannelSecret: env.get('SOCKET_CHANNEL_SECRET').required().asString()
+    socketChannelSecret: env.get('SOCKET_CHANNEL_SECRET').required().asString(),
+    frontendUrl: env.get('FRONTEND_URL').required().asString()
 };

@@ -2,12 +2,12 @@
 <div id="games-browser-container">
     <div id="search-bar">
         <form>
-            <input matInput placeholder="Search for a game" [(ngModel)]="searchTerm" name="searchTerm"
+            <input class="searchBar" matInput placeholder="Search for a game" [(ngModel)]="searchTerm" name="searchTerm"
                 (ngModelChange)="searchGames()" />
         </form>
     </div>
     <div id="games-list">
-        <mat-card *ngFor="let game of games" (click)="joinGame(game._id)">
+        <mat-card *ngFor="let game of games">
             <mat-card-header>
                 <mat-card-title>name: {{game.name}}</mat-card-title>
                 <mat-card-subtitle>round: {{game.round}}</mat-card-subtitle>
@@ -18,8 +18,7 @@
                 <p>Pot: {{game.pot}}</p>
             </mat-card-content>
             <mat-card-actions>
-                <button mat-button>JOIN</button>
-                <button mat-button>SPECTATE</button>
+                <button (click)="joinGame(game._id)" mat-button>JOIN</button>
             </mat-card-actions>
         </mat-card>
     </div>

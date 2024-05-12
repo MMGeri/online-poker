@@ -79,6 +79,7 @@ class GameEventManager {
                 break;
             case HybridEventNameEnum.START_GAME:
                 if (!result.newState.gameStarted) {
+                    this.newRound(result);
                     result.newState.gameStarted = true;
                     result.events.push(event);
                 }

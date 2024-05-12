@@ -568,7 +568,7 @@ paths:
           name: userId
           schema:
             type: string
-          required: false
+          required: true
           description: The id of the user to invite
         - in: query
           name: gameId
@@ -602,12 +602,6 @@ paths:
       tags:
         - Game
       parameters:
-        - in: query
-          name: token
-          schema:
-            type: string
-          required: false
-          description: The magic token to join the game with
         - in: query
           name: gameId
           schema:
@@ -662,6 +656,31 @@ paths:
                 $ref: "#/components/schemas/BaseError"
       security:
         - gamePlayerAuth: []
+  /game/magicLink:
+    get: # redirects to frontend, gameId and token in query
+      summary: Get magic link to join game
+      operationId: getMagicLink
+      x-eov-operation-handler: api/controllers/game.controller
+      tags:
+        - Game
+      parameters:
+        - in: query
+          name: gameId
+          schema:
+            type: string
+          required: true
+          description: The id of the game to join
+        - in: query
+          name: token
+          schema:
+            type: string
+          required: true
+          description: The magic token to join the game with
+      responses:
+        '302':
+          description: Magic link retrieved successfully or not found
+      security:
+        - cookieAuth: []
 # Chat
   /chats:
     get:
@@ -912,7 +931,6 @@ paths:
                 $ref: "#/components/schemas/BaseError"
       security:
         - chatMemberAuth: []
-
 components:
   schemas:
     UserRegistration:

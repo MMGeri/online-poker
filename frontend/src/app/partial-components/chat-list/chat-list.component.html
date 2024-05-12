@@ -11,10 +11,10 @@
     <mat-divider></mat-divider>
     <br>
     <h1>Friends</h1>
-    <mat-card class="cards" *ngFor="let friend of friends" class="chat-card" (click)="onSelectFriend(friend._id)">
+    <mat-card class="cards" *ngFor="let friend of friends" class="chat-card">
         <!-- TODO: IMAGE -->
         <mat-card-header>
-            <mat-card-title>{{friend.username}} | $:{{friend.balance}}</mat-card-title>
+            <mat-card-title (click)="onSelectFriend(friend._id)">{{friend.username}} | $:{{friend.balance}}</mat-card-title>
         </mat-card-header>
         <button mat-button (click)="removeFriend(friend._id)" color="primary">Remove</button>
         <mat-form-field>
@@ -24,7 +24,10 @@
                 <mat-option (click)="inviteToGame(game._id, friend._id)">{{game.name}} ({{game.createdAt}})</mat-option>
                 }
             </mat-select>
-        </mat-form-field>
+            </mat-form-field>
+            <textarea *ngIf="magicLink" matInput placeholder="magic link" [value]="magicLink"></textarea>
+            <button color="priamry" *ngIf="magicLink" mat-button (click)="copyLink()"><mat-icon>filter_none</mat-icon></button>
+            <button color="primary" mat-button (click)="magicLink=''" *ngIf="magicLink"><mat-icon>clear</mat-icon></button>
     </mat-card>
     <br>
     <mat-divider></mat-divider>

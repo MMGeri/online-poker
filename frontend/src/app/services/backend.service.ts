@@ -105,12 +105,8 @@ export class BackendService {
         return this.http.get<any>(`${this.backendUrl}/game/join`, { params: { gameId }, withCredentials: true });
     }
 
-    joinGameWithToken(token: string) {
-        return this.http.get<any>(`${this.backendUrl}/game/join`, { params: { token }, withCredentials: true });
-    }
-
     inviteToGame(gameId: string, userId: string) {
-        return this.http.post<string>(`${this.backendUrl}/game/invite`, { params: { gameId, userId } }, { withCredentials: true });
+        return this.http.post<{token: string}>(`${this.backendUrl}/game/invite`, {}, { params: { gameId, userId }, withCredentials: true });
     }
 
     // --- Chat

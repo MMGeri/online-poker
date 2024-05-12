@@ -143,9 +143,6 @@ server.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
 import './game-server/socket-io';
-import { GameModel } from './models';
-import mongoose from 'mongoose';
-import { isBSONType } from './shared/utils/utils';
 
 export default app;
 export { io, passportSession, expressSessionMiddleware };
