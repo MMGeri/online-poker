@@ -281,6 +281,10 @@ async function getMagicLink(req: Request, res: Response) {
                 $push: { 'players': { ...defaultPlayerSettings, userId } }
             }
         );
+        gems.gameEventManagers[gameId].updateFromDb();
+        const updatedChat = await dbService.updateDocumentById(dbModels.Channel, game.chatChannelId, {
+            $addToSet: { 'whiteList': userId }
+        });
     }
     res.redirect(301, `${config.frontendUrl}/game/${gameId}`);
 }

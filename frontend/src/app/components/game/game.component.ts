@@ -64,7 +64,7 @@ export class GameComponent {
             this.updateStuff();
         });
         this.userService.getUser().subscribe((user) => {
-            this.user = user;
+            this.user = user ?? this.user;
         });
         this.gameSocketService.sendEvent({
             inputEvent: {

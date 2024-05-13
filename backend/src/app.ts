@@ -38,7 +38,7 @@ const io = new Server(server, {
 });
 const corsOptions = {
     origin: (origin: string | undefined, callback: (error: Error | null, allowed?: boolean) => void) => {
-        if (!config.production && !origin) {
+        if (!config.production) {
             callback(null, true);
             return;
         }
