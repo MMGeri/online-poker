@@ -1,14 +1,12 @@
 import { Component, EventEmitter, Output } from '@angular/core';
 import { BackendService } from '../../services/backend.service';
-import { IUser } from '../../../models/user';
 import { MatCardModule } from '@angular/material/card';
-import { IChat } from '../../../models/chat';
+import { IChannel, IGame, IUser } from '../../../../../backend/src/models/types';
 import { MatDividerModule } from '@angular/material/divider';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { UserService } from '../../services/user.service';
-import { IGame } from '../../../models/game';
 import { MatSelectModule } from '@angular/material/select';
 import { environment } from '../../../environments/environment';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,7 +21,7 @@ import { MatInputModule } from '@angular/material/input';
 })
 export class ChatListComponent {
     constructor(private backendService: BackendService, private userService: UserService) { }
-    chats: IChat[] = [];
+    chats: IChannel[] = [];
     friends: IUser[] = [];
     @Output() chatSelected = new EventEmitter<{chatId: string, chatName: string}>();
     newUser: string = '';
@@ -79,7 +77,7 @@ export class ChatListComponent {
                     standalone: true,
                     whiteList: [this.user._id, friend._id]
                 }
-            ).subscribe((chat: IChat) => {
+            ).subscribe((chat: IChannel) => {
                 this.chats.push(chat);
             });
         }

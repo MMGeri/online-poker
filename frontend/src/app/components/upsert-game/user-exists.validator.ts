@@ -1,8 +1,7 @@
 import { AbstractControl, AsyncValidator } from "@angular/forms";
 import { BackendService } from "../../services/backend.service";
-import { ValidationError } from "express-openapi-validator/dist/framework/types";
 import { Observable, catchError, map, of } from "rxjs";
-import { IUser } from "../../../models/user";
+import { IUser } from "../../../../../backend/src/models/types";
 import { Injectable } from "@angular/core";
 
 @Injectable({ providedIn: 'root' })

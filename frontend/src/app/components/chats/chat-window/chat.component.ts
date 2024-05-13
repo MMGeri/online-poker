@@ -1,7 +1,7 @@
 import { Component, ElementRef, EventEmitter, Input, OnInit, Output, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { SocketIoService } from '../../../services/socket-io.service';
 import { FormsModule } from '@angular/forms';
-import { IMessage } from '../../../../models/message';
+import { IMessage } from '../../../../../../backend/src/models/types';
 import { BackendService } from '../../../services/backend.service';
 import { UserService } from '../../../services/user.service';
 import { CommonModule } from '@angular/common';

@@ -1,9 +1,11 @@
-export interface IChat {
+interface IChannel {
+    _id: string;
     name: string;
     ownerId?: string;
     whiteList: string[];
+    standalone: boolean;
     createdAt: Date;
     updatedAt: Date;
-    standalone: boolean;
-    _id: string;
 }
+
+export { IChannel };

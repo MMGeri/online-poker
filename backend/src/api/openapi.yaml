@@ -1294,3 +1294,7 @@ components:
       type: apiKey
       in: cookie
       name: connect.sid
+
+
+# INFO: i used query because of authentication, but it should be path
+# ADMIN seperate endpoints for friends, users?

@@ -1,13 +1,7 @@
-import mongoose, { ObjectId, Types, Document } from 'mongoose';
+import mongoose, { ObjectId } from 'mongoose';
+import { IChannel } from '../types';
 
 const { Schema } = mongoose;
-
-interface IChannel extends Document {
-    name: string;
-    ownerId?: string;
-    whiteList: string[];
-    standalone: boolean;
-}
 
 const channelSchema = new Schema<IChannel>({
     name: {

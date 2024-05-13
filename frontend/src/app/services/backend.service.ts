@@ -2,10 +2,8 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { IMessage } from '../../models/message';
-import { IGame } from '../../models/game';
-import { IChat } from '../../models/chat';
-import { IUser } from '../../models/user';
+import { IMessage } from '../../../../backend/src/models/types';
+import { IGame, IUser, IChannel } from '../../../../backend/src/models/types';
 import axios from 'axios';
 
 @Injectable({
@@ -110,14 +108,14 @@ export class BackendService {
     }
 
     // --- Chat
-    getMyChats(): Observable<IChat[]> {
-        return this.http.get<IChat[]>(`${this.backendUrl}/chats`, { withCredentials: true });
+    getMyChats(): Observable<IChannel[]> {
+        return this.http.get<IChannel[]>(`${this.backendUrl}/chats`, { withCredentials: true });
     }
     getMessages(page: number, channelId: string): Observable<IMessage[]> {
         return this.http.get<IMessage[]>(`${this.backendUrl}/chat/messages`, { params: { page, channelId }, withCredentials: true });
     }
-    createChat(chat: Partial<IChat>): Observable<IChat> {
-        return this.http.post<IChat>(`${this.backendUrl}/chat`, chat, { withCredentials: true });
+    createChat(chat: Partial<IChannel>): Observable<IChannel> {
+        return this.http.post<IChannel>(`${this.backendUrl}/chat`, chat, { withCredentials: true });
     }
     deleteChat(channelId: string) {
         return this.http.delete(`${this.backendUrl}/chat`, { params: { channelId }, withCredentials: true });

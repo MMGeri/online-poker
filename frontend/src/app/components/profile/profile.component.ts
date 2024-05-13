@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
-import { IUser } from '../../../models/user';
+import { IUser } from '../../../../../backend/src/models/types';
 import { UserService } from '../../services/user.service';
 import { MatDivider, MatDividerModule } from '@angular/material/divider';
 import { MatButtonModule } from '@angular/material/button';

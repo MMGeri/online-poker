@@ -1,4 +1,4 @@
-import { IGame, IPlayer } from '../models/game';
+import { IGame, IPlayer } from '../models/types/game';
 
 enum HybridEventNameEnum { // rather hybrid, in and out
     OPTIONS_CHANGED = 'OPTIONS_CHANGED',

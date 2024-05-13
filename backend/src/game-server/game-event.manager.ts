@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { ICard, IGame, IPlayer } from '../models/game';
+import { ICard, IGame, IPlayer, phases } from '../models/types/game';
 import { io } from '../app';
 import { dbModels, dbService } from '../shared/services/db.service';
 import { calculateValueOfHand, removeSensitiveData, allDoneCondition, calculateMoneyNeeded } from '../shared/utils/utils';
@@ -13,8 +13,6 @@ const userActions = [
     HybridEventNameEnum.USER_RAISED
 ];
 
-export const phases = ['Getting-Ready', 'Pre-flop', 'Flop', 'Turn', 'River'] as const;
-
 class GameEventManager {
     private gameState: IGame;
     private gameChannelIdentifier: string;
@@ -27,7 +25,7 @@ class GameEventManager {
     public async deleteGame() {
         io.of('/').in(this.gameChannelIdentifier).emit('game-event', { name: OutputEventNameEnum.GAME_ENDED });
         await this.refundMoney();
-        await dbService.updateDocumentById(dbModels.Game, this.gameState._id.toString(), { gameOver: true });
+        await dbService.updateDocumentById(dbModels.Game, this.gameState._id, { gameOver: true });
         this.gameState.gameOver = true;
         // disconnect sockets
         const namespace = io.of('/').in(this.gameChannelIdentifier);
@@ -42,7 +40,7 @@ class GameEventManager {
         const result = await this.calculateNewGameState(event);
         this.gameState = _.merge(this.gameState, result.newState);
         if (result.events.length > 0) {
-            await dbService.updateDocumentById(dbModels.Game, this.gameState._id.toString(), this.gameState);
+            await dbService.updateDocumentById(dbModels.Game, this.gameState._id, this.gameState);
         }
         return { events: result.events, gameState: removeSensitiveData(this.gameState) };
     }

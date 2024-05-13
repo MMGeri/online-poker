@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { dbModels, dbService } from '../../shared/services/db.service';
-import { IUser } from '../../models';
+import { IChannel, IUser } from '../../models/types';
 import { decodeJWT } from '../../shared/utils/jwt-handler';
 import { secureUser } from '../../shared/utils/utils';
 
@@ -21,7 +21,7 @@ async function getChats(req: Request, res: Response) {
 
 // create a chat
 async function createChat(req: Request, res: Response) {
-    const chat = req.body;
+    const chat = req.body as Partial<IChannel>;
     chat.standalone = true;
     const createdChat = await dbService.createDocument(dbModels.Channel, chat);
     res.status(201).send(createdChat);
@@ -42,7 +42,8 @@ async function deleteChat(req: Request, res: Response) {
 // update a chat
 async function updateChat(req: Request, res: Response) {
     const channelId = req.query.channelId as string;
-    const updatedChat = await dbService.updateDocumentById(dbModels.Channel, channelId, req.body);
+    const chat = req.body as Partial<IChannel>;
+    const updatedChat = await dbService.updateDocumentById(dbModels.Channel, channelId, chat);
     if (!updatedChat) {
         res.status(404).send('Chat not found');
         return;
@@ -57,12 +58,12 @@ async function joinChat(req: Request, res: Response) {
     const channelId: string = decodedToken.channelId;
     const userId: string | undefined = decodedToken.userId;
     const user = (req.user as IUser);
-    if (userId && user._id !== userId) {
+    if (userId && user._id.toString() !== userId) {
         res.status(401).send('Unauthorized');
         return;
     }
     const updatedChat = await dbService.updateDocumentById(dbModels.Channel, channelId, {
-        $addToSet: { 'whiteList': user._id }
+        $addToSet: { 'whiteList': user._id.toString() }
     });
     if (!updatedChat) {
         res.status(404).send('Chat not found');

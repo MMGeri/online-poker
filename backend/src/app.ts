@@ -13,7 +13,7 @@ import { config } from './config';
 import { connect } from './connection';
 import { dbModels, dbService } from './shared/services/db.service';
 import { configurePassport } from './shared/utils/passport';
-import { IUser } from './models/user';
+import { IUser } from './models/types/user';
 
 
 const port = config.port;
@@ -84,7 +84,7 @@ app.use(OpenApiValidator.middleware({
         handlers: {
             cookieAuth: (req, scopes, schema) => req.isAuthenticated(),
             cookieAdminAuth: (req, scopes, schema) => req.isAuthenticated() && (req.user as IUser).roles.includes('admin'),
-            userSpecificCookieAuth: (req, scopes, schema) => req.isAuthenticated() && req.query.userId === ((req.user as IUser)._id.toString()),
+            userSpecificCookieAuth: (req, scopes, schema) => req.isAuthenticated() && req.query.userId === ((req.user as IUser)._id),
             chatOwnerAuth: async (req, scopes, schema) => {
                 if (!req.isAuthenticated()) {
                     return false;

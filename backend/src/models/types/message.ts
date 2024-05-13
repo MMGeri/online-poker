@@ -1,9 +1,11 @@
-export interface IMessage {
+interface IMessage {
+    _id: string;
     channelId: string;
     senderId: string;
-    senderName: string;
+    senderName?: string;
     message: string;
     createdAt: Date;
     updatedAt: Date;
-    _id: string;
 }
+
+export { IMessage };

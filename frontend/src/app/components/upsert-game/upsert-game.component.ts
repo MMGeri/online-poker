@@ -3,14 +3,13 @@ import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Va
 import { MatButtonModule } from '@angular/material/button';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BackendService } from '../../services/backend.service';
-import { IGame } from '../../../models/game';
+import { IGame, IUser } from '../../../../../backend/src/models/types';
 import { MatInputModule } from '@angular/material/input';
 import { CommonModule } from '@angular/common';
 import { MatDivider } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatCardModule } from '@angular/material/card';
-import { IUser } from '../../../models/user';
 import { MatCheckbox } from '@angular/material/checkbox';
 import { UserExistsValidator } from './user-exists.validator';
 
@@ -56,7 +55,7 @@ export class UpsertGameComponent {
                 this.gameForm = this.formBuilder.group({
                     name: [game.name, Validators.required],
                     options: this.formBuilder.group({
-                        whiteList: this.formBuilder.array(game.options.whiteList.map((user) => (user as IUser).username)),
+                        whiteList: this.formBuilder.array(game.options.whiteList.map((user) => (user as unknown as IUser).username)),
                         maxPlayers: [game.options.maxPlayers, [Validators.required, Validators.min(2), Validators.max(10)]],
                         maxRaises: [game.options.maxRaises, [Validators.required, Validators.min(1), Validators.max(10)]],
                         isPublic: [game.options.isPublic, [Validators.required]]

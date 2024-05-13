@@ -1,5 +1,6 @@
 import { FilterQuery, MongooseQueryOptions, ProjectionFields, UpdateQuery } from 'mongoose';
-import { ChannelModel, GameModel, IChannel, IGame, IMessage, IUser, MessageModel, UserModel } from '../../models';
+import { IChannel, IGame, IMessage, IUser } from '../../models/types';
+import { UserModel, MessageModel, GameModel, ChannelModel } from '../../models/mongoose-models';
 
 export enum dbModels {
     User = 'User',
@@ -37,7 +38,7 @@ function getModel<T extends dbModels>(model: T) {
 export const dbService = {
     getDocumentById<T extends dbModels>(model: T, _id: string): Promise<InterfaceType<ModelType<T>> | null> {
         // @ts-expect-error - it's fine
-        return getModel(model).findById(_id).exec();
+        return getModel(model).findById(_id).lean().exec();
     },
 
     // generic methods
@@ -52,7 +53,7 @@ export const dbService = {
         // @ts-expect-error - it's fine
         let queryBuilder = Model.find(query, projection, options);
         if (page !== undefined) {
-            queryBuilder = queryBuilder.skip(page * 100).limit(100);
+            queryBuilder = queryBuilder.skip(page * 100).limit(100).lean();
         }
         return queryBuilder.exec();
     },
@@ -64,7 +65,7 @@ export const dbService = {
         options?: MongooseQueryOptions
     ): Promise<InterfaceType<ModelType<T>> | null> {
         // @ts-expect-error - it's fine
-        return getModel(model).findByIdAndUpdate(_id, update, { new: true, ...options }).exec();
+        return getModel(model).findByIdAndUpdate(_id, update, { new: true, ...options }).lean().exec();
     },
 
     createDocument<T extends dbModels>(
@@ -80,7 +81,7 @@ export const dbService = {
         _id: string
     ): Promise<InterfaceType<ModelType<T>> | null> {
         // @ts-expect-error - it's fine
-        return getModel(model).findByIdAndDelete(_id).exec();
+        return getModel(model).findByIdAndDelete(_id).lean().exec();
     },
 
     deleteDocumentsByIds<T extends dbModels>(
@@ -88,7 +89,7 @@ export const dbService = {
         _ids: string[]
     ): Promise<InterfaceType<ModelType<T>>[]> {
         // @ts-expect-error - it's fine
-        return getModel(model).deleteMany({ _id: { $in: _ids } }).exec();
+        return getModel(model).deleteMany({ _id: { $in: _ids } }).lean().exec();
     },
 
     deleteDocumentsByQuery<T extends dbModels>(
@@ -96,6 +97,6 @@ export const dbService = {
         query: FilterQuery<ModelType<T>>
     ): Promise<InterfaceType<ModelType<T>>[]> {
         // @ts-expect-error - it's fine
-        return getModel(model).deleteMany(query).exec();
+        return getModel(model).deleteMany(query).lean().exec();
     }
 };

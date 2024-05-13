@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
-import { NavigationStart, Router, RouterOutlet } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
 import { HeaderComponent } from './partial-components/header/header.component';
 import { ChatComponent } from './components/chats/chat-window/chat.component';
 import { LoginComponent } from './components/login/login.component';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { ChatListComponent } from './partial-components/chat-list/chat-list.component';
-import { IUser } from '../models/user';
+import { IUser } from '../../../backend/src/models/types';
 import { UserService } from './services/user.service';
 import { CommonModule } from '@angular/common';
 import { ChatsContainerComponent } from './components/chats/chats-container/chats-container.component';

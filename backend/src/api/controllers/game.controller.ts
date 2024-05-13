@@ -1,13 +1,14 @@
 // getGames (pages), getGame, deleteGame, updateGame, createGame, joinGame, leaveGame
 import { Request, Response } from 'express';
 import _ from 'lodash';
-import { IUser } from '../../models/user';
+import { IUser } from '../../models/types/user';
 import { dbModels, dbService } from '../../shared/services/db.service';
 import { BaseError } from '../middleware/error-handler';
 import { decodeJWT, generateJWT } from '../../shared/utils/jwt-handler';
 import { isBSONType, removeSensitiveData, secureUser } from '../../shared/utils/utils';
 import { gems } from '../../game-server/game-event.manager';
 import { config } from '../../config';
+import { IGame } from '../../models/types';
 
 const defaultPlayerSettings = {
     cards: [],
@@ -24,7 +25,7 @@ const defaultPlayerSettings = {
 };
 
 async function createGame(req: Request, res: Response, next: any) {
-    const game = req.body;
+    const game = req.body as unknown as IGame;
     const user = (req.user as IUser);
     let chat;
     try {
@@ -45,10 +46,10 @@ async function createGame(req: Request, res: Response, next: any) {
         ...game,
         ownerId: user._id.toString(),
         chatChannelId: chat._id,
-        options: { ...game.options, whiteList: [...game.options.whiteList, user._id.toString()] },
+        options: { ...game.options, whiteList: [...(game.options?.whiteList ?? []), user._id.toString()] },
         players: players
     };
-    if (gameToCreate.options.maxPlayers > gameToCreate.options.whiteList.length) {
+    if (!gameToCreate.options?.maxPlayers || gameToCreate.options.maxPlayers > gameToCreate.options.whiteList.length) {
         gameToCreate.options.maxPlayers = gameToCreate.options.whiteList.length;
     }
     if (!_.every(gameToCreate.options.whiteList, isBSONType)) {
@@ -100,22 +101,25 @@ async function getGameById(req: Request, res: Response) {
         res.status(400).send('Invalid game id');
         return;
     }
-    const game: any = await dbService.getDocumentById(dbModels.Game, gameId);
+    const game: any = (await dbService.getDocumentById(dbModels.Game, gameId));
     const playersOnWhiteList = await dbService.getDocumentsByQuery(dbModels.User, { _id: { $in: game.options.whiteList } });
-    playersOnWhiteList.map(u => secureUser(u));
-    game.options.whiteList = playersOnWhiteList;
+    game.options.whiteList = playersOnWhiteList.map(u => secureUser(u));
     res.status(200).send(removeSensitiveData(game));
 }
 
 async function updateGame(req: Request, res: Response, next: any) {
     try {
-        const gameToUpdate = req.body;
+        const user = (req.user as IUser);
+        let gameToUpdate = req.body as Partial<IGame>;
+        if (!user.roles.includes('admin')) {
+            gameToUpdate = _.pick(gameToUpdate, ['name', 'options', 'isPublic']);
+        }
         const gameId = req.query.gameId as string;
         if (!isBSONType(gameId)) {
             res.status(400).send('Invalid game id');
             return;
         }
-        if (!_.every(gameToUpdate.options.whiteList, isBSONType)) {
+        if (gameToUpdate.options && !_.every(gameToUpdate.options.whiteList, isBSONType)) {
             try {
                 gameToUpdate.options.whiteList = await convertUsernamesToIds(gameToUpdate.options.whiteList);
             } catch (error: any) {
@@ -175,7 +179,7 @@ async function joinGame(req: Request, res: Response) {
     }
     if (game?.options?.isPublic) {
         const set = {};
-        set[`players.${user._id}`] = { ...defaultPlayerSettings, userId: user._id.toString() };
+        set[`players.${user._id.toString()}`] = { ...defaultPlayerSettings, userId: user._id.toString() };
         // eslint-disable-next-line no-var
         var updatedGame = await dbService.updateDocumentById(dbModels.Game, gameId, {
             $addToSet: { 'options.whiteList': user._id.toString() },

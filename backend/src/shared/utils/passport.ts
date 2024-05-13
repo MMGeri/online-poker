@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { PassportStatic } from 'passport';
 import { Strategy } from 'passport-local';
-import { IUser } from '../../models/user';
+import { IUser } from '../../models/types/user';
 import { BaseError } from '../../api/middleware/error-handler';
 import { dbModels, dbService } from '../services/db.service';
 

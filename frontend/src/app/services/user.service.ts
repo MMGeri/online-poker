@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { IUser } from '../../models/user';
+import { IUser } from '../../../../backend/src/models/types';
 import { BehaviorSubject } from 'rxjs';
 import { Router } from '@angular/router';
 import { SocketIoService } from './socket-io.service';

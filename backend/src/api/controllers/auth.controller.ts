@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { Response, Request, NextFunction } from 'express';
 import passport from 'passport';
-import { IUser } from '../../models/user';
+import { IUser } from '../../models/types/user';
 import { BaseError } from '../middleware/error-handler';
 import { dbModels, dbService } from '../../shared/services/db.service';
 import { secureUser } from '../../shared/utils/utils';
@@ -17,7 +17,6 @@ async function login(req: Request, res: Response) {
                 res.status(401).send('Unauthorized');
                 return;
             }
-            user._id = user._id.toString();
             res.status(200).json(secureUser(user as IUser, true));
         });
     })(req, res);

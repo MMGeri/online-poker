@@ -2,8 +2,8 @@ import { Socket } from 'socket.io';
 import { NextFunction, Response, Request } from 'express';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import { io, passportSession, expressSessionMiddleware } from '../app';
-import { IUser } from '../models/user';
-import { IMessage } from '../models/message';
+import { IUser } from '../models/types/user';
+import { IMessage } from '../models/types/message';
 import { dbModels, dbService } from '../shared/services/db.service';
 import { HybridEventNameEnum, HybridEvent } from './game-events.model';
 import { gems } from './game-event.manager';
@@ -25,7 +25,7 @@ io.on('connection', (socket: Socket) => {
     socket.use(applyRateLimiting(socket, user));
 
     socket.on('join-chat-channel', async (obj: { key: string; channelId: string }) => {
-        if (await canJoinChatChannel(user._id, obj.channelId)) {
+        if (await canJoinChatChannel(user._id.toString(), obj.channelId)) {
             console.log('join chat channel', user.username, obj.channelId);
             socket.join(`chat:${obj.channelId}`);
         }
@@ -34,7 +34,7 @@ io.on('connection', (socket: Socket) => {
         if (await canJoinGameChannel(obj.key, obj.gameId)) {
             console.log('join game channel', user.username, obj.gameId);
             socket.join(`game:${obj.gameId}`);
-            socket.join(`game:${obj.gameId}:${user._id}`); // private room
+            socket.join(`game:${obj.gameId}:${user._id.toString()}`); // private room
         }
     });
     socket.on('leave-chat-channel', (obj: { channelId: string }) => {
@@ -44,13 +44,13 @@ io.on('connection', (socket: Socket) => {
     socket.on('leave-game-channel', (obj: { gameId: string }) => {
         console.log('leave game channel', user.username, obj.gameId);
         socket.leave(`game:${obj.gameId}`);
-        socket.leave(`game:${obj.gameId}:${user._id}`); // private room
+        socket.leave(`game:${obj.gameId}:${user._id.toString()}`); // private room
     });
     socket.on('new-message', (obj: { message: string; channelId: string }) => {
         console.log('new message', obj);
         const messageObj: Partial<IMessage> & { senderName: string } = {
             channelId: obj.channelId,
-            senderId: user._id,
+            senderId: user._id.toString(),
             senderName: user.username,
             message: obj.message
         };
@@ -59,9 +59,9 @@ io.on('connection', (socket: Socket) => {
     });
     socket.on('game-event', async (obj: { inputEvent: HybridEvent; gameId: string }) => {
         console.log('game event', obj);
-        obj.inputEvent.userId = user._id;
+        obj.inputEvent.userId = user._id.toString();
         if (!isInputEvent(obj.inputEvent) ||
-            !userOwnsSocket(user._id, obj.inputEvent.userId)) {
+            !userOwnsSocket(user._id.toString(), obj.inputEvent.userId)) {
             return;
         }
         const gameEventManager = gems.gameEventManagers[obj.gameId];
@@ -88,7 +88,7 @@ function userOwnsSocket(userId: string, socketUserId: string): boolean {
 
 function applyRateLimiting(socket: Socket, user: IUser) {
     return (packet, next) => {
-        rateLimiter.consume(user._id)
+        rateLimiter.consume(user._id.toString())
             .then(() => {
                 next();
             })

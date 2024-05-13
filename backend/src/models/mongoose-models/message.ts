@@ -1,11 +1,5 @@
-import mongoose, { Document, Schema, Model, Types } from 'mongoose';
-
-interface IMessage extends Document {
-    channelId: string;
-    senderId: string;
-    senderName?: string;
-    message: string;
-}
+import mongoose, { Schema, Model } from 'mongoose';
+import { IMessage } from '../types';
 
 const messageSchema = new Schema<IMessage>({
     senderName: {
@@ -28,4 +22,4 @@ const messageSchema = new Schema<IMessage>({
 }, { timestamps: true }); // Automatically adds createdAt and updatedAt
 
 const MessageModel: Model<IMessage> = mongoose.model<IMessage>('Message', messageSchema);
-export { MessageModel, IMessage };
+export { MessageModel };

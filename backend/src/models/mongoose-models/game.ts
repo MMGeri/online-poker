@@ -1,47 +1,5 @@
-import mongoose, { Document, Schema, Model, Types } from 'mongoose';
-import { phases } from '../game-server/game-event.manager';
-
-interface ICard {
-    value: '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A';
-    sign: 'hearts' | 'diamonds' | 'clubs' | 'spades';
-}
-
-interface IPlayer {
-    userId: string;
-    cards: ICard[];
-    inGameBalance: number;
-    bet: number;
-    called: boolean;
-    checked: boolean;
-    raisedTimes: number;
-    tapped: boolean;
-    tappedAtPot: number;
-    positionAtTable: number;
-    folded: boolean;
-    leftGame: boolean;
-    ready: boolean;
-}
-
-interface IGame extends Document {
-    ownerId: string;
-    name: string;
-    chatChannelId: string;
-    pot: number;
-    players: Map<string, IPlayer>;
-    playerTurn: number;
-    cardsOnTable: ICard[];
-    cardsInDeck: ICard[];
-    round: number;
-    phase: typeof phases[number];
-    gameStarted: boolean;
-    gameOver: boolean;
-    options: {
-        whiteList: string[];
-        maxPlayers: number;
-        maxRaises: number;
-        isPublic: boolean;
-    };
-}
+import mongoose, { Schema, Model } from 'mongoose';
+import { phases, IGame } from '../types/game';
 
 const gameSchema = new Schema<IGame>({
     ownerId: {
@@ -180,4 +138,4 @@ const gameSchema = new Schema<IGame>({
 }, { timestamps: true }); // Automatically adds createdAt and updatedAt
 
 const GameModel: Model<IGame> = mongoose.model<IGame>('Game', gameSchema);
-export { GameModel, IGame, IPlayer, ICard };
+export { GameModel };

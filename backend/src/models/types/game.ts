@@ -1,16 +1,13 @@
-import { IUser } from "./user";
+export const phases = ['Getting-Ready', 'Pre-flop', 'Flop', 'Turn', 'River'] as const;
 
-export interface ICard {
+interface ICard {
     value: '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A';
     sign: 'hearts' | 'diamonds' | 'clubs' | 'spades';
 }
 
-export const phases = ['Getting-Ready', 'Pre-flop', 'Flop', 'Turn', 'River'] as const;
-
-
-export interface IPlayer {
+interface IPlayer {
     userId: string;
-    cards?: ICard[];
+    cards: ICard[];
     inGameBalance: number;
     bet: number;
     called: boolean;
@@ -24,26 +21,28 @@ export interface IPlayer {
     ready: boolean;
 }
 
-export interface IGame extends Document {
+interface IGame {
+    _id: string;
     ownerId: string;
     name: string;
     chatChannelId: string;
     pot: number;
     players: Map<string, IPlayer>;
     playerTurn: number;
-    cardsOnTable?: ICard[];
-    cardsInDeck?: ICard[];
+    cardsOnTable: ICard[];
+    cardsInDeck: ICard[];
     round: number;
     phase: typeof phases[number];
     gameStarted: boolean;
     gameOver: boolean;
     options: {
-        whiteList: IUser[] | string[];
+        whiteList: string[];
         maxPlayers: number;
         maxRaises: number;
         isPublic: boolean;
     };
     createdAt: Date;
     updatedAt: Date;
-    _id: string;
 }
+
+export { IGame, IPlayer, ICard };

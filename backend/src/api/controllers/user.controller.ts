@@ -1,18 +1,26 @@
 import { Response, Request } from 'express';
 import _ from 'lodash';
 import { dbModels, dbService } from '../../shared/services/db.service';
-import { IChannel, IGame, IUser } from '../../models';
+import { IChannel, IGame, IUser } from '../../models/types';
 import { isBSONType, secureUser } from '../../shared/utils/utils';
+import { gems } from '../../game-server/game-event.manager';
 
 async function deleteUser(req: Request, res: Response) {
     const user = req.user as IUser;
-    const chatRoomsOfUser: IChannel[] = await dbService.getDocumentsByQuery(dbModels.Channel, { ownerId: user._id });
-    const gamesOfUser: IGame[] = await dbService.getDocumentsByQuery(dbModels.Game, { ownerId: user._id });
+    const chatRoomsOfUser: IChannel[] = await dbService.getDocumentsByQuery(dbModels.Channel, { ownerId: user._id.toString() });
+    const gamesOfUser: IGame[] = await dbService.getDocumentsByQuery(dbModels.Game, { ownerId: user._id.toString() });
     const chatRoomsToDelete = chatRoomsOfUser.map(chat => chat._id);
-    const gamesToDelete = gamesOfUser.map(game => game._id);
+    const gamesToDelete = gamesOfUser.map(game => game._id.toString());
     await dbService.deleteDocumentsByIds(dbModels.Channel, chatRoomsToDelete);
     await dbService.deleteDocumentsByIds(dbModels.Game, gamesToDelete);
-    const deletedUser = await dbService.deleteDocumentById(dbModels.User, user._id);
+    for (const game of gamesToDelete) {
+        try{
+            await gems.gameEventManagers[game].deleteGame();
+        } catch (error) {
+            console.error(error);
+        }
+    }
+    const deletedUser = await dbService.deleteDocumentById(dbModels.User, user._id.toString());
     if (!deletedUser) {
         res.status(404).send('User not found');
         return;
@@ -22,7 +30,8 @@ async function deleteUser(req: Request, res: Response) {
 
 async function updateUser(req: Request, res: Response) {
     const user = req.user as IUser;
-    const updatedUser = await dbService.updateDocumentById(dbModels.User, user._id, req.body);
+    const userUpdate = req.body as Partial<IUser>;
+    const updatedUser = await dbService.updateDocumentById(dbModels.User, user._id.toString(), userUpdate);
     if (!updatedUser) {
         res.status(404).send('User not found');
         return;
@@ -74,8 +83,8 @@ async function addFriend(req: Request, res: Response) {
         return;
     }
     user.friends.push(friend._id);
-    await dbService.updateDocumentById(dbModels.User, user._id, user);
-    await dbService.updateDocumentById(dbModels.User, friend._id, { $addToSet: { friends: user._id } });
+    await dbService.updateDocumentById(dbModels.User, user._id.toString(), user);
+    await dbService.updateDocumentById(dbModels.User, friend._id, { $addToSet: { friends: user._id.toString() } });
     res.status(201).send(friend);
 }
 
@@ -91,8 +100,8 @@ async function removeFriend(req: Request, res: Response) {
         res.status(404).send('User not found');
         return;
     }
-    await dbService.updateDocumentById(dbModels.User, user._id, { $pull: { friends: friend._id } });
-    await dbService.updateDocumentById(dbModels.User, friend._id, { $pull: { friends: user._id } });
+    await dbService.updateDocumentById(dbModels.User, user._id.toString(), { $pull: { friends: friend._id } });
+    await dbService.updateDocumentById(dbModels.User, friend._id, { $pull: { friends: user._id.toString() } });
     res.status(204).send();
 }
 

@@ -1,11 +1,10 @@
 import _ from 'lodash';
-import { ICard, IGame, IPlayer } from '../../models/game';
+import { ICard, IGame, IPlayer } from '../../models/types/game';
 import { HybridEvent, NewStateResult, SafeGameState, SafePlayer } from '../../game-server/game-events.model';
 
 function removeSensitiveData(gameState: IGame): Partial<SafeGameState> {
-    const players: any = JSON.parse(JSON.stringify(gameState.players));
-    let secureGameState: any = JSON.parse(JSON.stringify(gameState));
-
+    let secureGameState: any = gameState;
+    const players: any = secureGameState.players;
     for (const [key, player] of Object.entries(players)) {
         const securePlayer: any = _.omit((player as IPlayer), ['cards']);
         players[key] = securePlayer;
@@ -142,9 +141,9 @@ function isBSONType(id: string) {
     return /^[a-f\d]{24}$/i.test(id);
 }
 
-function secureUser(user: any, keepBalance?: boolean) {
-    user = JSON.parse(JSON.stringify(user));
-    user = keepBalance ? _.omit(user, ['hashedPassword', 'friends', 'roles']) : _.omit(user, ['hashedPassword', 'friends', 'balance', 'roles']);
+function secureUser(user: any, keepPrivateInfo?: boolean) {
+
+    user = keepPrivateInfo ? _.omit(user, ['hashedPassword']) : _.omit(user, ['hashedPassword', 'friends', 'balance', 'roles']);
     return user;
 }
 

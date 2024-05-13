@@ -1,15 +1,8 @@
-import mongoose, { Document, Model, Types } from 'mongoose';
+import _ from 'lodash';
+import mongoose, { Model } from 'mongoose';
+import { IUser } from '../types';
 
 const { Schema } = mongoose;
-interface IUser extends Document {
-    username: string;
-    hashedPassword: string;
-    roles: string[];
-    balance: number;
-    createdAt: Date;
-    updatedAt: Date;
-    friends: string[];
-}
 
 const userSchema = new Schema<IUser>({
     username: {
@@ -37,4 +30,4 @@ const userSchema = new Schema<IUser>({
 }, { timestamps: true });
 
 const UserModel: Model<IUser> = mongoose.model<IUser>('User', userSchema);
-export { UserModel, IUser };
+export { UserModel };

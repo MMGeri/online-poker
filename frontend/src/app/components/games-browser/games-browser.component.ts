@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
-import { IGame } from '../../../models/game';
+import { IGame } from '../../../../../backend/src/models/types';
 import { CommonModule } from '@angular/common';
 import { BackendService } from '../../services/backend.service';
 import { MatButtonModule } from '@angular/material/button';
