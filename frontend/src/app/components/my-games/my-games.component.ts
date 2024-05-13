@@ -30,7 +30,7 @@ export class MyGamesComponent {
     }
 
     players(element: any) {
-        return Object.keys(element.players).length;
+        return element.players.length;
     }
 
     deleteGame(gameId: string) {

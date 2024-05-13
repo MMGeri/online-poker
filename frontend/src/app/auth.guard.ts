@@ -33,7 +33,7 @@ export const gameGuard: CanActivateFn = (route, state) => {
         if (!game) {
             router.navigateByUrl('/home');
             return false;
-        } else if (!(game.players as any)[user._id]) {
+        } else if (!game.players.find(player => player.userId === user?._id)){
             router.navigateByUrl('/home');
             return false;
         }

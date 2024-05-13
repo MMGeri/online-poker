@@ -48,7 +48,7 @@ async function logout(req: Request, res: Response) {
             console.log(error);
             res.status(500).send('Internal server error.');
         }
-        res.status(200).send('Successfully logged out.');
+        res.status(200).send();
     });
 }
 

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { IUser } from '../../../../backend/src/models/types';
 import { BehaviorSubject } from 'rxjs';
 import { Router } from '@angular/router';
-import { SocketIoService } from './socket-io.service';
+import { ChatSocketService } from './chat-socket.service';
 
 @Injectable({
     providedIn: 'root'
@@ -10,7 +10,7 @@ import { SocketIoService } from './socket-io.service';
 export class UserService {
     user: BehaviorSubject<IUser | null> = new BehaviorSubject<IUser | null>(null);
 
-    constructor(private router: Router, private socketIoService: SocketIoService) {
+    constructor(private router: Router, private chatSocketService: ChatSocketService) {
         const user = localStorage.getItem('user');
         if (user) {
             this.user.next(JSON.parse(user));
@@ -33,6 +33,6 @@ export class UserService {
     logout() {
         this.setUser(null);
         this.router.navigateByUrl('/login');
-        this.socketIoService.disconnect();
+        this.chatSocketService.disconnect();
     }
 }

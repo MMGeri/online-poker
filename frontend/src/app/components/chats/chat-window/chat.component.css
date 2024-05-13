@@ -34,8 +34,15 @@
 * {
     pointer-events: auto;
 }
+#inputField {
+    width: 60%;
+    margin: 5px;
+    border-radius: 100px;
+    overflow: hidden;
+}
 
-button{
-    height: 30px;
-    width: 10px;
+#sendButton {
+    width: calc(38% - 2em);
+    border-radius: 100px;
+    overflow: hidden;
 }

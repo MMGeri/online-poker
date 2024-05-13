@@ -1,4 +1,4 @@
-import { IGame, IPlayer } from '../models/types/game';
+import { ICard, IGame, IPlayer } from '../models/types/game';
 
 enum HybridEventNameEnum { // rather hybrid, in and out
     USER_CONNECTED = 'USER_CONNECTED', // only for visuals n shit
@@ -30,12 +30,12 @@ enum OutputEventNameEnum {
 interface Event {
     name: HybridEventNameEnum | OutputEventNameEnum | PrivateEventNameEnum;
     userId?: string;
+    cards?: ICard[];
 }
 interface HybridEvent {
     name: HybridEventNameEnum;
     userId: string;
     amount?: number;
-    options?: IGame['options'];
 }
 
 export type SafePlayer = Omit<IPlayer, 'cards'>;

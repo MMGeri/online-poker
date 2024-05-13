@@ -21,9 +21,12 @@
                 <p>Pot: {{game.pot}}</p>
             </mat-card-content>
             <mat-card-actions>
+                
                 <button *ngIf="!userInGame(game)" (click)="joinGame(game._id)" mat-button>JOIN</button>
-                <button *ngIf="userInGame(game)" (click)="rejoinGame(game._id)" mat-button>RE JOIN</button>
-                <button *ngIf="userInGame(game)" (click)="leaveGame(game._id)" mat-button>LEAVE</button>
+                <div *ngIf="userInGame(game)">
+                    <button (click)="rejoinGame(game._id)" mat-button>RE JOIN</button>
+                    <button (click)="leaveGame(game._id)" mat-button>LEAVE</button>
+                </div>
                 <div *ngIf="user?.roles?.includes('admin')">
                     <button (click)="editGame(game._id)" mat-button>EDIT</button>
                     <button style=" color: red" (click)="deleteGame(game._id)" mat-button>DELETE</button>

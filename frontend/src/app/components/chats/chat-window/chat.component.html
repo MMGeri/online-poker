@@ -1,6 +1,8 @@
 <div [ngClass]="minimized ? 'minimized' : 'window-border'">
-    <button style="margin: 3px;" mat-button (click)="toggleMinimize()">{{ minimized ? "□" : "-"}}</button>
-    <button style="margin: 3px;" mat-button (click)="onClose()">X</button>
+    <div *ngIf="channel.chatName!='Game Chat' && channel.chatName!='Global'">
+        <button style="margin: 3px;" mat-button (click)="toggleMinimize()">{{ minimized ? "□" : "-"}}</button>
+        <button style="margin: 3px;" mat-button (click)="onClose()">X</button>
+    </div>
     <span style="margin: 3px;">{{ channel.chatName }}</span>
     <div *ngIf="!minimized" id="chat-window">
         <ul id="messages">
@@ -9,9 +11,9 @@
             </li>
         </ul>
     </div>
-    <mat-form-field subscriptSizing="dynamic" style="width: 60%;">
-    <input matInput style="margin: 3px 3px 3px 3px" *ngIf="!minimized" [(ngModel)]="message"
-        (keydown.enter)="sendMessage()" type="text">
+    <mat-form-field subscriptSizing="dynamic" id="inputField">
+        <input matInput style="margin: 3px 3px 3px 3px" *ngIf="!minimized" [(ngModel)]="message"
+            (keydown.enter)="sendMessage()" type="text">
     </mat-form-field>
-    <button mat-button *ngIf="!minimized"  (click)="sendMessage()">Send</button>
-    </div>
+    <button id="sendButton" mat-button *ngIf="!minimized" (click)="sendMessage()">Send</button>
+</div>

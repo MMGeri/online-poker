@@ -1,5 +1,5 @@
 import { Component, ElementRef, EventEmitter, Input, OnInit, Output, QueryList, ViewChild, ViewChildren } from '@angular/core';
-import { SocketIoService } from '../../../services/socket-io.service';
+import { ChatSocketService } from '../../../services/chat-socket.service';
 import { FormsModule } from '@angular/forms';
 import { IMessage } from '../../../../../../backend/src/models/types';
 import { BackendService } from '../../../services/backend.service';
@@ -34,7 +34,7 @@ export class ChatComponent implements OnInit {
     @ViewChildren('messageContainer') messageContainers!: QueryList<ElementRef>;
 
     constructor(
-        private socketIoService: SocketIoService,
+        private chatSocketService: ChatSocketService,
         private backendService: BackendService,
         private host: ElementRef<HTMLElement>,
         private userService: UserService
@@ -56,8 +56,8 @@ export class ChatComponent implements OnInit {
         this.backendService.getMessages(0, this.channel.chatId).subscribe((messages: IMessage[]) => {
             this.messages = messages;
         });
-        this.socketIoService.joinChatChannel(this.channel.chatId);
-        this.socketIoService.getMessages().subscribe((message: any) => {
+        this.chatSocketService.joinChatChannel(this.channel.chatId);
+        this.chatSocketService.getMessages().subscribe((message: any) => {
             if (message.channelId === this.channel.chatId) {
                 this.scrollToBottom();
                 this.messages.push(message);
@@ -80,14 +80,14 @@ export class ChatComponent implements OnInit {
         if (!this.message) {
             return;
         }
-        this.socketIoService.sendMessage(this.message, this.channel.chatId);
+        this.chatSocketService.sendMessage(this.message, this.channel.chatId);
         this.message = '';
     }
 
     leaveChat() {
         this.backendService.leaveChat(this.channel.chatId).subscribe(() => {
             this.closeChat.emit(this.channel.chatId);
-            this.socketIoService.leaveChatChannel(this.channel.chatId);
+            this.chatSocketService.leaveChatChannel(this.channel.chatId);
         });
     }
 
@@ -101,6 +101,6 @@ export class ChatComponent implements OnInit {
     }
 
     ngOnDestroy() {
-        this.socketIoService.leaveChatChannel(this.channel.chatId);
+        this.chatSocketService.leaveChatChannel(this.channel.chatId);
     }
 }

@@ -21,63 +21,64 @@ const gameSchema = new Schema<IGame>({
         default: 0
     },
     players: {
-        type: Map,
-        of: {
-            type: {
-                userId: {
-                    type: String,
-                    ref: 'User',
-                    required: true
-                },
-                cards: {
-                    type: [{
-                        value: String,
-                        sign: String
-                    }],
-                    default: []
-                },
-                inGameBalance: {
-                    type: Number,
-                    default: 0
-                },
-                bet: {
-                    type: Number,
-                    default: 0
-                },
-                checked: {
-                    type: Boolean,
-                    default: false
-                },
-                called: {
-                    type: Boolean,
-                    default: false
-                },
-                raisedTimes: {
-                    type: Number,
-                    default: 0
-                },
-                tapped: {
-                    type: Boolean,
-                    default: false
-                },
-                tappedAtPot: {
-                    type: Number,
-                    default: 0
-                },
-                positionAtTable: {
-                    type: Number,
-                    default: 0
-                },
-                folded: {
-                    type: Boolean,
-                    default: false
-                },
-                connected: {
-                    type: Boolean,
-                    default: false
-                }
+        type: [{
+            userId: {
+                type: String,
+                ref: 'User',
+                required: true
+            },
+            cards: {
+                type: [{
+                    value: String,
+                    sign: String
+                }],
+                default: []
+            },
+            inGameBalance: {
+                type: Number,
+                default: 0
+            },
+            bet: {
+                type: Number,
+                default: 0
+            },
+            checked: {
+                type: Boolean,
+                default: false
+            },
+            called: {
+                type: Boolean,
+                default: false
+            },
+            raisedTimes: {
+                type: Number,
+                default: 0
+            },
+            tapped: {
+                type: Boolean,
+                default: false
+            },
+            tappedAtPot: {
+                type: Number,
+                default: 0
+            },
+            positionAtTable: {
+                type: Number,
+                default: 0
+            },
+            folded: {
+                type: Boolean,
+                default: false
+            },
+            connected: {
+                type: Boolean,
+                default: false
+            },
+            ready: {
+                type: Boolean,
+                default: false
             }
-        }
+        }]
     },
     playerTurn: {
         type: Number,

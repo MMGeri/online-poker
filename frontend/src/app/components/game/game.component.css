@@ -1,0 +1,48 @@
+#chatWindow {
+    width: 50%;
+    margin: 20px;
+}
+
+#raiseButton {
+    background-color: #8a6c08;
+}
+
+#callButton {
+    background-color: #4CAF50;
+}
+
+#checkButton {
+    background-color: #008CBA;
+}
+
+#foldButton {
+    background-color: #f44336;
+}
+
+.lastbutton {
+    background-color: black;
+    color: white;
+}
+
+.inputElement{
+    width: 20%;
+    height: auto;
+    border-radius: 100px;
+    overflow: hidden;
+}
+
+#inputsContainer {
+    display: flex;
+    justify-content: space-between;
+    gap: 2px;
+    width: auto;
+    margin: 20px;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0px 0px 5px 0px #000000;
+}
+
+#betAmount {
+    text-align: center;
+}
+

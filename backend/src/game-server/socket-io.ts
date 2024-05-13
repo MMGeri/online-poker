@@ -5,7 +5,7 @@ import { io, passportSession, expressSessionMiddleware } from '../app';
 import { IUser } from '../models/types/user';
 import { IMessage } from '../models/types/message';
 import { dbModels, dbService } from '../shared/services/db.service';
-import { HybridEventNameEnum, HybridEvent } from './game-events.model';
+import { HybridEventNameEnum, HybridEvent, PrivateEventNameEnum, GameEvent } from './game-events.model';
 import { gems } from './game-event.manager';
 
 const rateLimiter = new RateLimiterMemory({
@@ -57,7 +57,7 @@ io.on('connection', (socket: Socket) => {
         io.in(`chat:${obj.channelId}`).emit('new-message', messageObj);
         dbService.createDocument(dbModels.Message, messageObj);
     });
-    socket.on('game-event', async (obj: { inputEvent: HybridEvent; gameId: string }) => {
+    socket.on('game-event', async (obj: { inputEvent: GameEvent; gameId: string }) => {
         console.log('game event', obj);
         obj.inputEvent.userId = user._id.toString();
         if (!isInputEvent(obj.inputEvent) ||
@@ -70,6 +70,10 @@ io.on('connection', (socket: Socket) => {
         }
         const { events, gameState } = await gameEventManager.getNewGameState(obj.inputEvent);
         for (const event of events) {
+            if (event.name in [PrivateEventNameEnum.CARDS_DEALT, PrivateEventNameEnum.INSUFFICIENT_BALANCE]) {
+                io.in(`game:${obj.gameId}:${event.userId}`).emit('game-event', { event, gameState });
+                continue;
+            }
             io.in(`game:${obj.gameId}`).emit('game-event', { event, gameState });
         }
     });
@@ -78,7 +82,7 @@ io.on('connection', (socket: Socket) => {
     });
 });
 
-function isInputEvent(event: HybridEvent): event is HybridEvent {
+function isInputEvent(event: GameEvent): event is HybridEvent {
     return (event as HybridEvent).name in HybridEventNameEnum;
 }
 
@@ -93,8 +97,7 @@ function applyRateLimiting(socket: Socket, user: IUser) {
                 next();
             })
             .catch(() => {
-                socket.disconnect();
-                next(new Error('Rate limit exceeded'));
+                // next(new Error('Rate limit exceeded'));
             });
     };
 }

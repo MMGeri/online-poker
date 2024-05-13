@@ -1,13 +1,3 @@
-<!-- this.gameForm = this.formBuilder.group({
-    name: [game.name, Validators.required],
-    options: this.formBuilder.group({
-        whiteList: [game.options.whiteList],
-        maxPlayers: [game.options.maxPlayers, [Validators.required]],
-        maxRaises: [game.options.maxRaises, [Validators.required]],
-        isPublic: [game.options.isPublic, [Validators.required]]
-    })
-}); -->
-
 <div class="upsert-game-container">
     <mat-card id="card">
         <form [formGroup]="gameForm" class="game-form" (ngSubmit)="game ? update() : create()">

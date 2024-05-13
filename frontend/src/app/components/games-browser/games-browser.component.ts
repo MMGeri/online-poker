@@ -59,6 +59,11 @@ export class GamesBrowserComponent {
                 this.errorMessage = '';
             }, 5000);
         });
+        this.backendService.getGames().subscribe((games: IGame[]) => {
+            this.games = games;
+        }, (error) => {
+            console.error(error);
+        });
     }
 
     rejoinGame(gameId: string) {
@@ -67,13 +72,7 @@ export class GamesBrowserComponent {
 
     leaveGame(gameId: string) {
         this.backendService.leaveGame(gameId).subscribe(() => {
-            this.games = this.games.map((game) => {
-                if (game._id === gameId && this.user) {
-                    game.players.delete(this.user._id);
-                    game.options.whiteList = game.options.whiteList.filter((user) => user !== this.user?._id);
-                }
-                return game;
-            });
+            this.ngOnInit();
         }, (error: any) => {
             this.errorMessage = getErrorMessage(error);
             setTimeout(() => {
@@ -86,7 +85,7 @@ export class GamesBrowserComponent {
         if (!this.user) {
             return false;
         }
-        return (game.players as any)[this.user._id] !== undefined;
+        return game.players.find(p => p.userId === this.user!._id) !== undefined;
     }
 
     searchGames() {
@@ -98,6 +97,6 @@ export class GamesBrowserComponent {
     }
 
     players(game: IGame) {
-        return Object.keys(game.players).length;
+        return game.players.length;
     }
 }

@@ -1,1 +1,21 @@
-<p>game works!</p>
+@if (gameState){
+<div id="chatWindow">
+    <app-chat [channel]="{ chatId: gameState!.chatChannelId, chatName: 'Game Chat'}"></app-chat>
+</div>
+}
+<div id="inputsContainer">
+    <mat-form-field class="inputElement">
+        <input id="betAmount" matInput [(ngModel)]="betAmount" type="number" />
+    </mat-form-field>
+    <button class="inputElement" id="raiseButton" mat-button (click)="raise()" [disabled]="!canRaise">Raise</button>
+    <button class="inputElement" id="callButton" mat-button (click)="call()" [disabled]="!canCall">Call</button>
+    <button class="inputElement" id="checkButton" mat-button (click)="check()" [disabled]="!canCheck">Check</button>
+    <button class="inputElement" id="foldButton" mat-button (click)="fold()" [disabled]="!canFold">Fold</button>
+    <button class="inputElement lastbutton" mat-button *ngIf="canIready" (click)="ready()">Ready</button>
+    <button class="inputElement lastbutton" mat-button *ngIf="canIstart" (click)="startGame()">Start Game</button>
+</div>
+
+
+<div *ngIf="errorMessage" style="color: red;">{{errorMessage}}</div>
+<pre>{{MyCards}}</pre>
+<pre>{{GameState}}</pre>

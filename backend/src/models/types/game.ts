@@ -27,7 +27,7 @@ interface IGame {
     name: string;
     chatChannelId: string;
     pot: number;
-    players: Map<string, IPlayer>;
+    players: IPlayer[];
     playerTurn: number;
     cardsOnTable: ICard[];
     cardsInDeck: ICard[];

@@ -8,7 +8,7 @@ import { decodeJWT, generateJWT } from '../../shared/utils/jwt-handler';
 import { isBSONType, removeSensitiveData, secureUser } from '../../shared/utils/utils';
 import { gems } from '../../game-server/game-event.manager';
 import { config } from '../../config';
-import { IGame } from '../../models/types';
+import { IGame, IPlayer } from '../../models/types';
 
 const defaultPlayerSettings = {
     cards: [],
@@ -21,7 +21,8 @@ const defaultPlayerSettings = {
     tappedAtPot: 0,
     positionAtTable: 0,
     folded: false,
-    connected: false
+    connected: false,
+    ready: false
 };
 
 async function createGame(req: Request, res: Response, next: any) {
@@ -37,11 +38,10 @@ async function createGame(req: Request, res: Response, next: any) {
         next(new BaseError('DbError', 500, error.message, 'backend game controller'));
         return;
     }
-    const players = new Map<string, any>();
-    players.set(user._id.toString(), {
+    const players: IPlayer[] = [{
         ...defaultPlayerSettings,
         userId: user._id.toString()
-    });
+    }];
     const gameToCreate = {
         ...game,
         ownerId: user._id.toString(),
@@ -49,7 +49,7 @@ async function createGame(req: Request, res: Response, next: any) {
         options: { ...game.options, whiteList: [...(game.options?.whiteList ?? []), user._id.toString()] },
         players: players
     };
-    if (!gameToCreate.options?.maxPlayers || gameToCreate.options.maxPlayers > gameToCreate.options.whiteList.length) {
+    if (!gameToCreate.options?.maxPlayers || gameToCreate.options.maxPlayers < gameToCreate.options.whiteList.length) {
         gameToCreate.options.maxPlayers = gameToCreate.options.whiteList.length;
     }
     if (!_.every(gameToCreate.options.whiteList, isBSONType)) {
@@ -97,7 +97,7 @@ async function getGames(req: Request, res: Response) {
         query['options.isPublic'] = true;
     }
     const games = await dbService.getDocumentsByQuery(dbModels.Game, query, page);
-    res.status(200).send(games.map(removeSensitiveData));
+    res.status(200).send(games.map(g => removeSensitiveData(g)));
 }
 
 async function getGameById(req: Request, res: Response) {
@@ -187,12 +187,10 @@ async function joinGame(req: Request, res: Response) {
         return;
     }
     if (game?.options?.isPublic) {
-        const set = {};
-        set[`players.${user._id.toString()}`] = { ...defaultPlayerSettings, userId: user._id.toString() };
         // eslint-disable-next-line no-var
         var updatedGame = await dbService.updateDocumentById(dbModels.Game, gameId, {
             $addToSet: { 'options.whiteList': user._id.toString() },
-            $set: set
+            $push: { 'players': { ...defaultPlayerSettings, userId: user._id.toString() } }
         });
     } else {
         res.status(400).send('Invalid gameId');
@@ -221,10 +219,14 @@ async function leaveGame(req: Request, res: Response) {
         return;
     }
     const userId = (req.user as IUser)._id.toString();
-    const updatedGame = await dbService.updateDocumentById(dbModels.Game, gameId, {
-        $pull: { 'options.whiteList': userId },
-        $unset: { [`players.${userId}`]: '' }
-    });
+    const updatedGame = await dbService.updateDocumentById(dbModels.Game, gameId,
+        {
+            $pull: {
+                'options.whiteList': userId,
+                'players': { userId }
+            }
+        }
+    );
     if (!updatedGame) {
         res.status(404).send('Game not found');
         return;
@@ -273,13 +275,12 @@ async function getMagicLink(req: Request, res: Response) {
             res.status(404).send('Game not found');
             return;
         }
-        // eslint-disable-next-line no-var
-        const set = {};
-        set[`players.${userId}`] = { ...defaultPlayerSettings, userId };
-        await dbService.updateDocumentById(dbModels.Game, gameId, {
-            $addToSet: { 'options.whiteList': userId },
-            $set: set
-        });
+        await dbService.updateDocumentById(dbModels.Game, gameId,
+            {
+                $addToSet: { 'options.whiteList': userId },
+                $push: { 'players': { ...defaultPlayerSettings, userId } }
+            }
+        );
     }
     res.redirect(301, `${config.frontendUrl}/game/${gameId}`);
 }

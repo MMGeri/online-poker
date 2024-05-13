@@ -7,7 +7,7 @@ import { Router } from '@angular/router';
 @Injectable({
     providedIn: 'root'
 })
-export class SocketIoService {
+export class ChatSocketService {
     private socket = io(environment.backendUrl, { withCredentials: true });
 
     constructor(private router: Router) {

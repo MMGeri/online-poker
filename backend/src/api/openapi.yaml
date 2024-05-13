@@ -521,7 +521,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/BaseError"
       security:
-        - gameOwnerAuth: []
+        - cookieAuth: []
         - cookieAdminAuth: []
     post:
       summary: Create a new game

@@ -2,16 +2,15 @@ import _ from 'lodash';
 import { ICard, IGame, IPlayer } from '../../models/types/game';
 import { HybridEvent, NewStateResult, SafeGameState, SafePlayer } from '../../game-server/game-events.model';
 
-function removeSensitiveData(gameState: IGame): Partial<SafeGameState> {
+function removeSensitiveData(gameState: IGame, keepCardsOnTable = false): Partial<SafeGameState> {
     let secureGameState: any = gameState;
-    const players: any = secureGameState.players;
-    for (const [key, player] of Object.entries(players)) {
-        const securePlayer: any = _.omit((player as IPlayer), ['cards']);
-        players[key] = securePlayer;
-    }
+    secureGameState.players = secureGameState.players.map((player) => _.omit(player, ['cards']));
 
-    secureGameState = _.omit(secureGameState, ['cardsInDeck', 'cardsOnTable']);
-    secureGameState.players = players;
+    if (keepCardsOnTable) {
+        secureGameState = _.omit(secureGameState, ['cardsInDeck']);
+    } else {
+        secureGameState = _.omit(secureGameState, ['cardsInDeck', 'cardsOnTable']);
+    }
 
     return secureGameState;
 }
@@ -130,11 +129,14 @@ function calculateValueOfHand(cards: ICard[]): number {
 }
 
 function calculateMoneyNeeded(newState: IGame, event: HybridEvent) {
+    const players: IPlayer[] = newState.players;
+    const player = players.find((p) => p.userId === event.userId);
     const beforePreFlop = newState.phase === 'Getting-Ready';
-    const isPlayerBlind = newState.players[event.userId].positionAtTable === 0;
-    const isPlayerBetZero = newState.players[event.userId].bet === 0;
+    const isPlayerBlind = player?.positionAtTable === 0;
+    const isPlayerBetZero = player?.bet === 0;
     const moneyForBlinds = beforePreFlop && isPlayerBlind && isPlayerBetZero ? 1 : 0;
-    return _.maxBy(Object.values(newState.players), 'bet').bet - newState.players[event.userId].bet + moneyForBlinds;
+    const maxBet = _.maxBy(players, 'bet')?.bet!;
+    return maxBet - (player?.bet ?? 0) + moneyForBlinds;
 }
 
 function isBSONType(id: string) {
