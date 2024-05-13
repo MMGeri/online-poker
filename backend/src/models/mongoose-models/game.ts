@@ -72,7 +72,7 @@ const gameSchema = new Schema<IGame>({
                     type: Boolean,
                     default: false
                 },
-                leftGame: {
+                connected: {
                     type: Boolean,
                     default: false
                 }

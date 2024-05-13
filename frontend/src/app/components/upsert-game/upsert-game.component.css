@@ -1,7 +1,7 @@
 .whiteListItem {
-    display: block;
+    overflow: none;
+        height: auto !important;
 }
-
 textarea,
 input {
     height: 10px;
@@ -28,4 +28,15 @@ form {
 
 #card {
     padding: 10px;
+}
+#addToWhiteList {
+    margin: 10px 0px 10px 0px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+#addToWhiteList button {
+    width: 50%;
+    height: auto;
 }

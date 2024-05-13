@@ -142,7 +142,6 @@ function isBSONType(id: string) {
 }
 
 function secureUser(user: any, keepPrivateInfo?: boolean) {
-
     user = keepPrivateInfo ? _.omit(user, ['hashedPassword']) : _.omit(user, ['hashedPassword', 'friends', 'balance', 'roles']);
     return user;
 }

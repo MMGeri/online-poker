@@ -10,9 +10,7 @@ import axios from 'axios';
     providedIn: 'root'
 })
 export class BackendService {
-    signUp(username: string, password: string) {
-        return this.http.post(`${this.backendUrl}/signup`, { username, password });
-    }
+
     private backendUrl = environment.backendUrl;
 
     constructor(private http: HttpClient) { }
@@ -25,8 +23,8 @@ export class BackendService {
         return this.http.get(`${this.backendUrl}/logout`, { withCredentials: true });
     }
 
-    register(username: string, password: string) {
-        return this.http.post(`${this.backendUrl}/register`, { username, password });
+    register(body: { username?: string, password?: string, confirmPassword?: string }) {
+        return this.http.post(`${this.backendUrl}/register`, body);
     }
 
     getUserByName(username: string): Observable<IUser[]> {
@@ -101,6 +99,10 @@ export class BackendService {
 
     joinGame(gameId: string) {
         return this.http.get<any>(`${this.backendUrl}/game/join`, { params: { gameId }, withCredentials: true });
+    }
+
+    leaveGame(gameId: string) {
+        return this.http.get<any>(`${this.backendUrl}/game/leave`, { params: { gameId }, withCredentials: true });
     }
 
     inviteToGame(gameId: string, userId: string) {

@@ -7,6 +7,7 @@ import { UserService } from '../../services/user.service';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { SocketIoService } from '../../services/socket-io.service';
+import { getErrorMessage } from '../../utils/utils';
 
 @Component({
     selector: 'app-login',
@@ -45,7 +46,7 @@ export class LoginComponent {
             this.userService.setUser(response);
             this.socketIoService.reconnect();
         }, (error) => {
-            this.errorMessage = error.error;
+            this.errorMessage = getErrorMessage(error);
         });
     }
 }

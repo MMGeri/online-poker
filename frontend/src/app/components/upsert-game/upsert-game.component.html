@@ -31,12 +31,14 @@
                         </button>
                     </mat-list-item>
                 </mat-list>
-                <mat-form-field>
-                    <mat-label for="newItem">Add to White List</mat-label>
-                    <textarea matInput type="text" #newItem></textarea>
-                </mat-form-field>
-                <button type="button" mat-raised-button color="primary"
-                    (click)="addToWhiteList(newItem.value)">Add</button>
+                <div id="addToWhiteList">
+                    <mat-form-field subscriptSizing="dynamic">
+                        <mat-label for="newItem">Add to White List</mat-label>
+                        <input matInput type="text" #newItem />
+                    </mat-form-field>
+                    <button type="button" mat-raised-button color="primary"
+                        (click)="addToWhiteList(newItem.value)">Add</button>
+                </div>
                 <mat-form-field>
                     <mat-label for="maxPlayers">Max Players</mat-label>
                     <input matInput type="number" formControlName="maxPlayers" />

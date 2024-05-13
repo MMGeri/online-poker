@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatButtonModule } from '@angular/material/button';
+import { getErrorMessage } from '../../utils/utils';
 
 @Component({
     selector: 'app-signup',
@@ -28,8 +29,8 @@ export class SignupComponent implements OnInit {
     ngOnInit(): void {
         this.signUpForm = this.formBuilder.group({
             username: ['', [Validators.required, Validators.minLength(4)]],
-            password: ['', [Validators.required]],
-            confirmPassword: ['', [Validators.required]]
+            password: ['', [Validators.required, Validators.minLength(4)]],
+            confirmPassword: ['', [Validators.required, Validators.minLength(4)]]
         }, {
             validator: this.mustMatch('password', 'confirmPassword')
         });
@@ -58,10 +59,11 @@ export class SignupComponent implements OnInit {
         }
         const username = this.signUpForm.value.username;
         const password = this.signUpForm.value.password;
-        this.backendService.signUp(username!, password!).subscribe((response: any) => {
+        const confirmPassword = this.signUpForm.value.confirmPassword;
+        this.backendService.register({ username, password, confirmPassword }).subscribe((response: any) => {
             this.router.navigateByUrl('/login');
         }, (error: any) => {
-            this.errorMessage = 'Invalid form data. Please try again.'
+            this.errorMessage = getErrorMessage(error);
         });
     }
 

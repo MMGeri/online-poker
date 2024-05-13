@@ -4,8 +4,8 @@
 }
 <app-chats-container #chatWindows></app-chats-container>
 <mat-sidenav-container class="example-container" [hasBackdrop]="false" autosize>
-    <mat-sidenav *ngIf="user" position="end" [opened]="chatListOpen" mode="side">
-        <app-chat-list (chatSelected)="chatWindows.addChat($event)"></app-chat-list>
+    <mat-sidenav *ngIf="user" position="end" [opened]="chatListOpenBool" mode="side">
+        <app-chat-list [chatListOpen]="chatListOpen" (chatSelected)="chatWindows.addChat($event)"></app-chat-list>
     </mat-sidenav>
     <mat-sidenav-content>
         <router-outlet></router-outlet>

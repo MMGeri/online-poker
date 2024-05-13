@@ -626,7 +626,7 @@ paths:
       security:
         - cookieAuth: []
   /game/leave:
-    put:
+    get:
       summary: Leave game
       operationId: leaveGame
       x-eov-operation-handler: api/controllers/game.controller
@@ -940,9 +940,12 @@ components:
           type: string
         password:
           type: string
+        confirmPassword:
+          type: string
       required:
         - username
         - password
+        - confirmPassword
     UserLogin:
       type: object
       properties:
@@ -1049,7 +1052,7 @@ components:
               type: number
             folded:
               type: boolean
-            leftGame:
+            connected:
               type: boolean
           additionalProperties: false
         playerTurn:
@@ -1130,7 +1133,7 @@ components:
               type: number
             folded:
               type: boolean
-            leftGame:
+            connected:
               type: boolean
           additionalProperties: false
         playerTurn:

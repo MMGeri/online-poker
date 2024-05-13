@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { BackendService } from '../../services/backend.service';
 import { MatCardModule } from '@angular/material/card';
 import { IChannel, IGame, IUser } from '../../../../../backend/src/models/types';
@@ -11,6 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { environment } from '../../../environments/environment';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { Observable } from 'rxjs';
 
 @Component({
     selector: 'app-chat-list',
@@ -23,6 +24,7 @@ export class ChatListComponent {
     constructor(private backendService: BackendService, private userService: UserService) { }
     chats: IChannel[] = [];
     friends: IUser[] = [];
+    @Input() chatListOpen!: Observable<boolean>;
     @Output() chatSelected = new EventEmitter<{chatId: string, chatName: string}>();
     newUser: string = '';
     searchedUsers: IUser[] = [];
@@ -33,6 +35,15 @@ export class ChatListComponent {
     magicLink: string = '';
 
     ngOnInit() {
+        this.updateData();
+        this.chatListOpen.subscribe((open) => {
+            if (open) {
+                this.updateData();
+            }
+        });
+    }
+
+    updateData() {
         this.backendService.getFriends().subscribe((friends: IUser[]) => {
             this.friends = friends;
         });
@@ -60,12 +71,15 @@ export class ChatListComponent {
     onAddUser(friendId: string) {
         this.backendService.addFriend(friendId).subscribe((friend: IUser) => {
             this.friends.push(friend);
+            this.newUser = '';
+            this.searchedUsers = [];
         });
     }
 
     onSelectFriend(friendId: string) {
         // create chat if it doesnt already exist or open it
-        const chat = this.chats.find(c => c.whiteList.includes(friendId) && c.whiteList.length === 2);
+        const chat = this.chats.find(c =>
+            c.whiteList.map(u => (u as unknown as IUser)._id).includes(friendId) && c.whiteList.length === 2);
         if (chat) {
             this.onSelectChat(chat._id, chat.name);
         } else if (this.user) {
@@ -97,10 +111,11 @@ export class ChatListComponent {
 
     searchUser() {
         if (!this.newUser) {
+            this.searchedUsers = [];
             return;
         }
         this.backendService.getUserByName(this.newUser).subscribe((users: IUser[]) => {
-            this.searchedUsers = users;
+            this.searchedUsers = users.filter(u => !this.friends.find(f => f._id === u._id) && u._id !== this.user?._id);
         });
     }
 

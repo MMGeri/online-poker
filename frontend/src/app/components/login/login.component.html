@@ -15,5 +15,6 @@
         <div class="buttons">
             <button mat-raised-button color="primary" routerLink="/signup">Sign Up</button>
         </div>
+        <span *ngIf="errorMessage" style="color: red">{{errorMessage}}</span>
     </form>
 </div>

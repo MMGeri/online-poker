@@ -27,6 +27,11 @@ async function register(req: Request, res: Response, next: NextFunction) {
     const users = await dbService.getDocumentsByQuery(dbModels.User, { username: user.username });
     if (users.length > 0) {
         res.status(400).send('Username is already taken');
+        return;
+    }
+    if (user.password !== user.confirmPassword) {
+        res.status(400).send('Passwords do not match');
+        return;
     }
     const hashedPassword = createHash('sha256').update(req.body.password).digest('hex');
     try {

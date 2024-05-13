@@ -9,6 +9,7 @@ import { IUser } from '../../../backend/src/models/types';
 import { UserService } from './services/user.service';
 import { CommonModule } from '@angular/common';
 import { ChatsContainerComponent } from './components/chats/chats-container/chats-container.component';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 @Component({
     selector: 'app-root',
@@ -29,7 +30,8 @@ import { ChatsContainerComponent } from './components/chats/chats-container/chat
 export class AppComponent {
     title = 'Poker Géjmz';
     showHead = true;
-    chatListOpen = false;
+    chatListOpen: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+    chatListOpenBool: boolean = false;
     user: IUser | null = null;
 
     constructor(private userService: UserService) { }
@@ -41,6 +43,7 @@ export class AppComponent {
     }
 
     openChatList(event: any) {
-        this.chatListOpen = !this.chatListOpen;
+        this.chatListOpenBool = !this.chatListOpenBool;
+        this.chatListOpen.next(this.chatListOpenBool);
     }
 }

@@ -22,25 +22,30 @@ class GameEventManager {
         this.gameChannelIdentifier = `game:${gameState._id}`;
     }
 
+    // leave game for good, not the same as user left fire USER_DISCONNECTED event
+    public async abandonGame(userId: string) {
+        await this.refundMoney(userId);
+        await this.updateFromDb();
+        io.in(this.gameChannelIdentifier).emit('game-event', { event: { name: HybridEventNameEnum.USER_DISCONNECTED, userId }, gameState: this.gameState });
+    }
+
     public async deleteGame() {
-        io.of('/').in(this.gameChannelIdentifier).emit('game-event', { name: OutputEventNameEnum.GAME_ENDED });
         await this.refundMoney();
-        await dbService.updateDocumentById(dbModels.Game, this.gameState._id, { gameOver: true });
         this.gameState.gameOver = true;
-        // disconnect sockets
-        const namespace = io.of('/').in(this.gameChannelIdentifier);
-        namespace.fetchSockets().then((sockets) => {
-            sockets.forEach((socket) => {
-                socket.disconnect();
-            });
-        });
+        await this.updateToDb();
+        io.in(this.gameChannelIdentifier).emit('game-event', { event: { name: OutputEventNameEnum.GAME_ENDED }, gameState: this.gameState });
+    }
+
+    public async updateFromDb() {
+        this.gameState = (await dbService.getDocumentById(dbModels.Game, this.gameState._id))!;
+        io.in(this.gameChannelIdentifier).emit('game-event', { event: { name: OutputEventNameEnum.FORCE_UPDATE }, gameState: this.gameState });
     }
 
     public async getNewGameState(event: HybridEvent): Promise<{ events: GameEvent[]; gameState: Partial<SafeGameState> }> {
         const result = await this.calculateNewGameState(event);
         this.gameState = _.merge(this.gameState, result.newState);
         if (result.events.length > 0) {
-            await dbService.updateDocumentById(dbModels.Game, this.gameState._id, this.gameState);
+            await this.updateToDb();
         }
         return { events: result.events, gameState: removeSensitiveData(this.gameState) };
     }
@@ -61,18 +66,12 @@ class GameEventManager {
         }
 
         switch (event.name) {
-            case HybridEventNameEnum.OPTIONS_CHANGED:
-                if (event.options && event.userId === this.gameState.ownerId) {
-                    result.newState.options = event.options;
-                    result.events.push(event);
-                }
-                break;
-            case HybridEventNameEnum.USER_JOINED:
-                result.newState.players[event.userId].leftGame = false;
+            case HybridEventNameEnum.USER_CONNECTED:
+                result.newState.players[event.userId].connected = false;
                 result.events.push(event);
                 break;
-            case HybridEventNameEnum.USER_LEFT:
-                result.newState.players[event.userId].leftGame = true;
+            case HybridEventNameEnum.USER_DISCONNECTED:
+                result.newState.players[event.userId].connected = true;
                 result.events.push(event);
                 break;
             case HybridEventNameEnum.START_GAME:
@@ -125,6 +124,38 @@ class GameEventManager {
                 return { event: null, newState };
             default:
                 return { event: null, newState };
+        }
+    }
+
+    private async updateToDb() {
+        await dbService.updateDocumentById(dbModels.Game, this.gameState._id, this.gameState);
+    }
+
+    private async refundMoney(userId?: string) {
+        if (userId) {
+            const player = this.gameState.players[userId];
+            if (player) {
+                const playerFromDb = await dbService.getDocumentById(dbModels.User, userId);
+                if (!playerFromDb) {
+                    console.log('Could not find player in db', player.userId);
+                    return;
+                }
+                await dbService.updateDocumentById(dbModels.User, userId, {
+                    $set: { balance: player.inGameBalance + playerFromDb.balance + player.bet }
+                });
+            }
+        } else {
+            const players = this.gameState.players.values();
+            for (const player of players) {
+                const playerFromDb = await dbService.getDocumentById(dbModels.User, player.userId.toString());
+                if (!playerFromDb) {
+                    console.log('Could not find player in db', player.userId);
+                    continue;
+                }
+                await dbService.updateDocumentById(dbModels.User, player.userId.toString(), {
+                    $set: { balance: player.inGameBalance + playerFromDb.balance + player.bet }
+                });
+            }
         }
     }
 
@@ -183,7 +214,7 @@ class GameEventManager {
             return result;
         }
         if (result.newState.phase === 'River' && allDone) {
-        // shuffle players
+            // shuffle players
             const randomSequence = _.shuffle(_.range(0, _.values(result.newState.players).length));
             result.newState.players.forEach((value: IPlayer, key: string) => {
                 value.positionAtTable = randomSequence[value.positionAtTable];
@@ -214,30 +245,16 @@ class GameEventManager {
     }
 
     private handleGameEnded(result: NewStateResult) {
-        const playersLeft = _.every(result.newState.players, (player: IPlayer) => player.leftGame);
+        const playersLeft = _.every(result.newState.players, (player: IPlayer) => player.connected);
         if (playersLeft) {
             result.newState.gameOver = true;
             this.deleteGame();
         }
     }
 
-    private async refundMoney() {
-        const players = this.gameState.players.values();
-        for (const player of players) {
-            const playerFromDb = await dbService.getDocumentById(dbModels.User, player.userId.toString());
-            if (!playerFromDb) {
-                console.log('Could not find player in db', player.userId);
-                continue;
-            }
-            await dbService.updateDocumentById(dbModels.User, player.userId.toString(), {
-                $set: { balance: player.inGameBalance + playerFromDb.balance + player.bet }
-            });
-        }
-    }
-
     private async payoutRoundWinners(result: NewStateResult) {
         const players: IPlayer[] = Array.from(result.newState.players.values());
-        const playersInGame = players.filter((player) => !player.folded && !player.leftGame);
+        const playersInGame = players.filter((player) => !player.folded && !player.connected);
         const playerHandValues = playersInGame.map(
             (player) => ({ ...player, value: calculateValueOfHand(player.cards.concat(result.newState.cardsOnTable)) })
         );
@@ -336,7 +353,7 @@ class GameEventManager {
     private findNextPlayerWhoCanPlay(result: NewStateResult) {
         const playerTurn = result.newState.playerTurn;
         const players = Array.from(result.newState.players.values());
-        const condtion = (player: IPlayer) => !player.folded && !player.leftGame && !player.tapped;
+        const condtion = (player: IPlayer) => !player.folded && !player.connected && !player.tapped;
         let nextPlayer: IPlayer;
         for (let i = 0; i < players.length; i++) {
             const player = players[(playerTurn + i) % players.length];
@@ -368,7 +385,7 @@ class GameEventManager {
     }
 
     private handleFoldEvent(newState: IGame, event: HybridEvent) {
-        const hasPlayerAlreadyFolded = newState.players[event.userId].leftGame;
+        const hasPlayerAlreadyFolded = newState.players[event.userId].connected;
         if (!hasPlayerAlreadyFolded) {
             newState.players[event.userId].folded = false;
             return { event, newState };

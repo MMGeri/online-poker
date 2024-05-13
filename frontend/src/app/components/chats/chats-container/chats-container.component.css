@@ -1,11 +1,11 @@
 #chat-container {
     z-index: 2;
     position: fixed;
-    top: 99%;
+    top: 100%;
     right: 0px;
     transform: translateY(-100%);
     width: 100%;
-    height: 200px;
+    height: 100%;
     display: flex;
     justify-content: flex-end;
     pointer-events: none;
@@ -16,4 +16,10 @@
     margin-left: 20px;
     margin-right: 20px;
     width: 20%;
+}
+
+:host::ng-deep .mat-mdc-form-field-infix {
+    padding: 0px !important;
+    margin: 0px !important;
+    min-height: 0px !important;
 }

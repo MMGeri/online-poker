@@ -12,6 +12,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckbox } from '@angular/material/checkbox';
 import { UserExistsValidator } from './user-exists.validator';
+import { getErrorMessage } from '../../utils/utils';
 
 @Component({
     selector: 'app-upsert-game',
@@ -49,11 +50,12 @@ export class UpsertGameComponent {
 
     ngOnInit() {
         this.gameId = this.route.snapshot.paramMap.get('id');
+        console.log(this.gameId)
         if (this.gameId) {
             this.backendService.getGameById(this.gameId).subscribe((game: IGame) => {
                 this.game = game;
                 this.gameForm = this.formBuilder.group({
-                    name: [game.name, Validators.required],
+                    name: [game.name, [Validators.required, Validators.minLength(3), Validators.maxLength(20)]],
                     options: this.formBuilder.group({
                         whiteList: this.formBuilder.array(game.options.whiteList.map((user) => (user as unknown as IUser).username)),
                         maxPlayers: [game.options.maxPlayers, [Validators.required, Validators.min(2), Validators.max(10)]],
@@ -65,7 +67,7 @@ export class UpsertGameComponent {
         }
         else {
             this.gameForm = this.formBuilder.group({
-                name: ['', Validators.required],
+                name: [null, [Validators.required, Validators.minLength(3), Validators.maxLength(20)]],
                 options: this.formBuilder.group({
                     whiteList: this.formBuilder.array([]),
                     maxPlayers: [5, [Validators.required]],
@@ -89,7 +91,7 @@ export class UpsertGameComponent {
         this.backendService.updateGame(this.gameId!, game).subscribe((game: IGame) => {
             this.router.navigateByUrl(`/game/${game._id}`);
         }, (error: any) => {
-            this.errorMessage = error.error.message;
+            this.errorMessage = getErrorMessage(error);
         });
     }
 
@@ -106,7 +108,7 @@ export class UpsertGameComponent {
         this.backendService.createGame(game).subscribe((game: IGame) => {
             this.router.navigateByUrl(`/game/${game._id}`);
         }, (error: any) => {
-            this.errorMessage = error.error;
+            this.errorMessage = getErrorMessage(error);
         });
     }
 

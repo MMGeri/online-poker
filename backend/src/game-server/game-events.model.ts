@@ -1,9 +1,8 @@
 import { IGame, IPlayer } from '../models/types/game';
 
 enum HybridEventNameEnum { // rather hybrid, in and out
-    OPTIONS_CHANGED = 'OPTIONS_CHANGED',
-    USER_JOINED = 'USER_JOINED', // only for visuals n shit
-    USER_LEFT = 'USER_LEFT', // only for visuals n shit
+    USER_CONNECTED = 'USER_CONNECTED', // only for visuals n shit
+    USER_DISCONNECTED = 'USER_DISCONNECTED', // only for visuals n shit
 
     USER_READY = 'USER_READY',
 
@@ -21,6 +20,7 @@ enum PrivateEventNameEnum {
 }
 
 enum OutputEventNameEnum {
+    FORCE_UPDATE = 'FORCE_UPDATE',
     GAME_ENDED = 'GAME_ENDED', // no additional data - o
     NEXT_PLAYER = 'NEXT_PLAYER',
     NEW_PHASE = 'NEW_PHASE',

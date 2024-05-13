@@ -6,3 +6,6 @@ mat-card:hover {
 #chat-list-container {
     padding: 20px
 }
+.chat-card {
+    margin: 3px;
+}

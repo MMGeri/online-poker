@@ -6,6 +6,7 @@ import { BackendService } from '../../../services/backend.service';
 import { UserService } from '../../../services/user.service';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
+import { MatInputModule } from '@angular/material/input';
 
 @Component({
     selector: 'app-chat',
@@ -15,7 +16,8 @@ import { MatButtonModule } from '@angular/material/button';
     imports: [
         FormsModule,
         CommonModule,
-        MatButtonModule
+        MatButtonModule,
+        MatInputModule
     ]
     // providers: [ChatService]
 })

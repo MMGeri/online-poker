@@ -6,7 +6,7 @@ import { secureUser } from '../../shared/utils/utils';
 
 // channel id and or page
 async function getChats(req: Request, res: Response) {
-    const userId = (req.user as IUser)._id;
+    const userId = (req.user as IUser)._id.toString();
     const query = {};
     query['$or'] = [{ ownerId: userId }, { whiteList: userId }];
     query['standalone'] = true;
@@ -24,6 +24,9 @@ async function createChat(req: Request, res: Response) {
     const chat = req.body as Partial<IChannel>;
     chat.standalone = true;
     const createdChat = await dbService.createDocument(dbModels.Channel, chat);
+    const queriedChat: any = await dbService.getDocumentById(dbModels.Channel, createdChat._id.toString());
+    const usersOfChat = await dbService.getDocumentsByQuery(dbModels.User, { _id: { $in: queriedChat.whiteList } });
+    queriedChat.whiteList = usersOfChat.map(u => secureUser(u));
     res.status(201).send(createdChat);
 }
 
@@ -74,7 +77,7 @@ async function joinChat(req: Request, res: Response) {
 
 async function leaveChat(req: Request, res: Response) {
     const channelId = req.query.channelId as string;
-    const userId = (req.user as IUser)._id;
+    const userId = (req.user as IUser)._id.toString();
     const updatedChat = await dbService.updateDocumentById(dbModels.Channel, channelId, {
         $pull: { 'whiteList': userId }
     });

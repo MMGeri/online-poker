@@ -17,7 +17,7 @@ interface IPlayer {
     tappedAtPot: number;
     positionAtTable: number;
     folded: boolean;
-    leftGame: boolean;
+    connected: boolean;
     ready: boolean;
 }
 

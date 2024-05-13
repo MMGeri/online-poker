@@ -51,9 +51,9 @@ export const dbService = {
     ): Promise<InterfaceType<ModelType<T>>[]> {
         const Model = getModel(model);
         // @ts-expect-error - it's fine
-        let queryBuilder = Model.find(query, projection, options);
+        let queryBuilder = Model.find(query, projection, options).lean();
         if (page !== undefined) {
-            queryBuilder = queryBuilder.skip(page * 100).limit(100).lean();
+            queryBuilder = queryBuilder.skip(page * 100).limit(100);
         }
         return queryBuilder.exec();
     },

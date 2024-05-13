@@ -1,9 +1,12 @@
 <!-- list of mat cards displaying user names, pot, and round -->
 <div id="games-browser-container">
+    <div *ngIf="errorMessage" style="color: red">{{errorMessage}}</div>
     <div id="search-bar">
-        <form>
-            <input class="searchBar" matInput placeholder="Search for a game" [(ngModel)]="searchTerm" name="searchTerm"
-                (ngModelChange)="searchGames()" />
+        <form class="searchBar">
+            <mat-form-field>
+                <input matInput placeholder="Search for a game" [(ngModel)]="searchTerm" name="searchTerm"
+                    (input)="searchGames()" />
+            </mat-form-field>
         </form>
     </div>
     <div id="games-list">
@@ -18,7 +21,13 @@
                 <p>Pot: {{game.pot}}</p>
             </mat-card-content>
             <mat-card-actions>
-                <button (click)="joinGame(game._id)" mat-button>JOIN</button>
+                <button *ngIf="!userInGame(game)" (click)="joinGame(game._id)" mat-button>JOIN</button>
+                <button *ngIf="userInGame(game)" (click)="rejoinGame(game._id)" mat-button>RE JOIN</button>
+                <button *ngIf="userInGame(game)" (click)="leaveGame(game._id)" mat-button>LEAVE</button>
+                <div *ngIf="user?.roles?.includes('admin')">
+                    <button (click)="editGame(game._id)" mat-button>EDIT</button>
+                    <button style=" color: red" (click)="deleteGame(game._id)" mat-button>DELETE</button>
+                </div>
             </mat-card-actions>
         </mat-card>
     </div>

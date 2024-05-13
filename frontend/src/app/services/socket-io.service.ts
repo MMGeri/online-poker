@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import io from 'socket.io-client';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { Router } from '@angular/router';
 
 @Injectable({
     providedIn: 'root'
@@ -9,10 +10,11 @@ import { environment } from '../../environments/environment';
 export class SocketIoService {
     private socket = io(environment.backendUrl, { withCredentials: true });
 
-    constructor() {
+    constructor(private router: Router) {
         this.socket.on('connect_error', (error: any) => {
             if (error.description === 401) {
                 this.disconnect();
+                this.router.navigateByUrl('/profile');
             }
         });
     }

@@ -55,9 +55,8 @@ async function getUserById(req: Request, res: Response) {
 
 async function getUsers(req: Request, res: Response) {
     const username = req.query.username as string;
-    const users = await dbService.getDocumentsByQuery(dbModels.User, { username });
-    users.map(u => secureUser(u));
-    res.status(200).send(users);
+    const users = await dbService.getDocumentsByQuery(dbModels.User, { username: { $regex: username, $options: 'i' } });
+    res.status(200).send(users.map(u => secureUser(u)));
 }
 
 async function getFriends(req: Request, res: Response) {
@@ -78,14 +77,19 @@ async function addFriend(req: Request, res: Response) {
         res.status(404).send('User not found');
         return;
     }
-    if (user.friends.includes(friend._id)) {
+    if (user.friends.includes(friend._id.toString())) {
         res.status(400).send('User is already your friend');
         return;
     }
-    user.friends.push(friend._id);
+    console.log(friend._id.toString(), user._id.toString());
+    if (friend._id.toString() === user._id.toString()) {
+        res.status(400).send('You cannot add yourself as a friend');
+        return;
+    }
+    user.friends.push(friend._id.toString());
     await dbService.updateDocumentById(dbModels.User, user._id.toString(), user);
-    await dbService.updateDocumentById(dbModels.User, friend._id, { $addToSet: { friends: user._id.toString() } });
-    res.status(201).send(friend);
+    await dbService.updateDocumentById(dbModels.User, friend._id.toString(), { $addToSet: { friends: user._id.toString() } });
+    res.status(201).send(secureUser(friend, true));
 }
 
 async function removeFriend(req: Request, res: Response) {
@@ -100,8 +104,8 @@ async function removeFriend(req: Request, res: Response) {
         res.status(404).send('User not found');
         return;
     }
-    await dbService.updateDocumentById(dbModels.User, user._id.toString(), { $pull: { friends: friend._id } });
-    await dbService.updateDocumentById(dbModels.User, friend._id, { $pull: { friends: user._id.toString() } });
+    await dbService.updateDocumentById(dbModels.User, user._id.toString(), { $pull: { friends: friend._id.toString() } });
+    await dbService.updateDocumentById(dbModels.User, friend._id.toString(), { $pull: { friends: user._id.toString() } });
     res.status(204).send();
 }
 

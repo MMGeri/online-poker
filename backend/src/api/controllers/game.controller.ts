@@ -21,7 +21,7 @@ const defaultPlayerSettings = {
     tappedAtPot: 0,
     positionAtTable: 0,
     folded: false,
-    leftGame: false
+    connected: false
 };
 
 async function createGame(req: Request, res: Response, next: any) {
@@ -45,7 +45,7 @@ async function createGame(req: Request, res: Response, next: any) {
     const gameToCreate = {
         ...game,
         ownerId: user._id.toString(),
-        chatChannelId: chat._id,
+        chatChannelId: chat._id.toString(),
         options: { ...game.options, whiteList: [...(game.options?.whiteList ?? []), user._id.toString()] },
         players: players
     };
@@ -62,8 +62,13 @@ async function createGame(req: Request, res: Response, next: any) {
     }
     try {
         const createdGame = await dbService.createDocument(dbModels.Game, gameToCreate);
-        gems.createGameEventManager(createdGame);
-        res.status(201).send(createdGame);
+        const queriedGame = await dbService.getDocumentById(dbModels.Game, createdGame._id.toString());
+        if (queriedGame) {
+            gems.createGameEventManager(createdGame);
+            res.status(201).send(createdGame);
+        } else {
+            res.status(500).send('Game could not be created');
+        }
     } catch (error: any) {
         next(new BaseError('DbError', 500, error.message, 'backend game controller'));
     }
@@ -84,7 +89,7 @@ async function getGames(req: Request, res: Response) {
     const user = (req.user as IUser);
     const page: number | undefined = parseInt(req.query.page as string, 10) ?? undefined;
     if (req.query.name) {
-        query.name = { $regex: req.query.name as string };
+        query.name = { $regex: req.query.name as string, $options: 'i' };
     }
     if (req.query.myGames) {
         query.ownerId = user?._id;
@@ -174,7 +179,11 @@ async function joinGame(req: Request, res: Response) {
 
     const game = await dbService.getDocumentById(dbModels.Game, gameId);
     if (game && game?.options.whiteList.includes(user._id.toString())) {
-        res.status(200).json({ message: 'Already joined' });
+        res.status(400).json({ message: 'Already joined' });
+        return;
+    }
+    if (game && game.options.maxPlayers && game.options.whiteList.length >= game.options.maxPlayers) {
+        res.status(400).json({ message: 'Game is full' });
         return;
     }
     if (game?.options?.isPublic) {
@@ -194,7 +203,7 @@ async function joinGame(req: Request, res: Response) {
         res.status(404).send('Game not found');
         return;
     }
-
+    await gems.gameEventManagers[gameId].updateFromDb();
     const updatedChat = await dbService.updateDocumentById(dbModels.Channel, updatedGame.chatChannelId, {
         $addToSet: { 'whiteList': user._id.toString() }
     });
@@ -211,7 +220,7 @@ async function leaveGame(req: Request, res: Response) {
         res.status(400).send('Invalid game id');
         return;
     }
-    const userId = (req.user as IUser)._id;
+    const userId = (req.user as IUser)._id.toString();
     const updatedGame = await dbService.updateDocumentById(dbModels.Game, gameId, {
         $pull: { 'options.whiteList': userId },
         $unset: { [`players.${userId}`]: '' }
@@ -219,6 +228,11 @@ async function leaveGame(req: Request, res: Response) {
     if (!updatedGame) {
         res.status(404).send('Game not found');
         return;
+    }
+    try {
+        gems.gameEventManagers[gameId].abandonGame(userId);
+    } catch (error) {
+        console.error(error);
     }
     res.status(204).send();
 }

@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { GamesBrowserComponent } from './components/games-browser/games-browser.component';
-import { authGuard, gameGuard } from './auth.guard';
+import { authGuard, gameGuard, gameOwnerGuard } from './auth.guard';
 
 export const routes: Routes = [
     {
@@ -38,7 +38,7 @@ export const routes: Routes = [
     {
         path: 'my-games/:id',
         loadComponent: () => import('./components/upsert-game/upsert-game.component').then(c => c.UpsertGameComponent),
-        canActivate: [authGuard]
+        canActivate: [authGuard, gameOwnerGuard]
     },
     {
         path: '**',
